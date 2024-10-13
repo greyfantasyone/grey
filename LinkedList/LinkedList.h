@@ -78,11 +78,22 @@ public:
     /// 删除 currentPos 后面的元素
     void remove()
     {
-        if (currentPos == nullptr || currentPos->next == nullptr)
+        if (currentPos == nullptr || (currentPos->next == nullptr && size!=1))
         {
             return; // Do nothing if currentPos is null or if there is no next element
         }
+        
+        
 
+        // If the list becomes empty after deletion, reset head and currentPos
+        if (head == currentPos && currentPos->next == nullptr)
+        {
+            head = nullptr;
+            currentPos = nullptr;
+        }
+        else if (currentPos->next != nullptr)
+    {
+        // More than one node in the list
         Node* nodeToDelete = currentPos->next;
         currentPos->next = nodeToDelete->next;
         delete nodeToDelete;
@@ -94,6 +105,7 @@ public:
             head = nullptr;
             currentPos = nullptr;
         }
+    }
     }
 };
 
@@ -213,25 +225,5 @@ void SingleLinkedList<T>::_copy(const SingleLinkedList<T> &_l)
         }
         ++size;
         p = p->next;
-    }
-}
-template <typename T>
-void SingleLinkedList<T>::remove()
-{
-    if (currentPos == nullptr || currentPos->next == nullptr)
-    {
-        return; // Do nothing if currentPos is null or if there is no next element
-    }
-
-    Node* nodeToDelete = currentPos->next;
-    currentPos->next = nodeToDelete->next;
-    delete nodeToDelete;
-    --size;
-
-    // If the list becomes empty after deletion, reset head and currentPos
-    if (head == currentPos && currentPos->next == nullptr)
-    {
-        head = nullptr;
-        currentPos = nullptr;
     }
 }
