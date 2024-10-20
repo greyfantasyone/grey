@@ -1,0 +1,125 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+
+
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{郭子昊, 3230104714}
+\chead{数据结构与算法第四次作业}
+\rhead{Oct.20th, 2024}
+
+\section{测试程序的设计思路}
+
+首先，我创建了一个空的List对象，以便后续进行各种操作的测试。
+
+2，我通过pushfront和 pushback 的方法在链表的头部和尾部插入元素，并且打印链表中的内容来验证插入是否成功。我的思路是插入四个元素，分别用pushfront和pushback操作，观察四个元素的排列顺序即可证明。
+
+根据“List elements after pushfront and pushback::5 10 20 25”的输出，发现插入成功了。
+
+3，我通过size和empty方法来验证链表的大小和是否为空。因为上文我插入了四个元素，那么此时size的结果也应该是4，并且显然链表不是空链表，那么empty的结果应该是false。
+
+根据“size: 4  Is empty: No”的输出，发现size和empty方法的结果是正确的。
+
+4，我通过front和back方法来验证链表的头部和尾部元素是否正确。因为我插入了四个元素，那么头部元素应该是第一个插入的元素，尾部元素应该是最后一个插入的元素。
+
+根据“Front: 5  Back: 25”的输出，发现front和back方法的结果是正确的。
+
+5，我通过popfront和popback方法来验证链表的头部和尾部元素是否被正确删除。因为我插入了四个元素，那么我popfront和popback之后，链表中应该只剩下两个元素。并且这两个元素应该是第二个和第三个插入的元素，即10和20。
+
+根据“After popfront and popback, size: 2  List elements after popfront and popback: 10 20 ”的输出，发现 popfront 和 popback 方法的结果是正确的。
+
+6，我通过insert的方法在链表插入元素，并且打印链表中的内容来验证插入是否成功。我的思路是在链表表头插入一个元素15，然后打印链表中的内容，观察此时链表的size并且观察15是否在表头。
+
+根据“After insert, size: 3  List elements after insert: 15 10 20”的输出，发现insert方法的结果是正确的。
+
+7，我通过erase的方法在链表删除元素，并且打印链表中的内容来验证删除是否成功。我的思路是删除链表中头元素，即刚才用insert插入的15，然后打印链表中的内容，观察此时链表的size并且观察15是否在链表中。
+
+根据“After erase, size: 2  List elements after erase: 10 20”的输出，发现erase方法的结果是正确的。
+
+8，我通过clear的方法清空链表，并且打印链表中的内容来验证清空是否成功。我的思路是清空链表，然后打印链表中的内容，观察此时链表的size是否为0。
+
+根据“After clear, size: 0   ”的输出，发现clear方法的结果是正确的。
+
+9，我测试初始化列表构造函数。使用初始化列表构造函数创建一个新的链表 list2，并初始化其内容为 {1, 2, 3, 4, 5}，然后打印链表中的内容，通过观察链表的size和内容，来验证初始化是否成功。
+
+根据“List2 size: 5  List2 elements: 1 2 3 4 5”的输出，发现初始化列表构造函数的结果是正确的。
+
+10，我测试拷贝构造函数。使用拷贝构造函数创建一个新的链表 list3，并将 list2 拷贝给 list3，然后打印链表中的内容，通过观察链表的size和内容，来验证拷贝是否成功。
+
+根据“List3 size (copy of list2): 5  List3 elements (copy of list2): 1 2 3 4 5 ”的输出，发现拷贝构造函数的结果是正确的。
+
+11，我测试赋值运算符。我构建了一个新链表List4，然后将List3赋值给List4，然后打印链表中的内容，通过观察链表的size和内容，来验证赋值是否成功。
+
+根据“List4 size (assigned from list3): 5  List4 elements (assigned from list3): 1 2 3 4 5 ”的输出，发现赋值运算符的结果是正确的。
+
+12，我测试移动构造函数。我构建了一个新链表List5，然后将List4移动给List5，然后打印链表中的内容，通过观察链表5的size和内容，以及链表4的size是否为0，来验证移动是否成功。
+
+根据“List5 size (moved from list4): 5  List4 size after move: 0  List5 elements (moved from list4): 1 2 3 4 5 ”的输出，发现移动构造函数的结果是正确的。
+
+13，我测试前置自增和后置自增运算符。我取链表2中的头元素1，对它分别进行++iter,itre++,再iter++的操作，分别观察三次的输出情况。
+
+根据“Initial value: 1  Value after ++iter: 2  Value after iter++: 2  Value after iter++: 3”的输出，发现前置自增和后置自增运算符的结果是正确的。
+
+15，我测试前置自减和后置自减运算符。我取前文运算后得到的结果3，对它分别进行--iter,itre--,再iter--的操作，分别观察三次的输出情况。
+
+根据“Initial value: 3  Value after --iter: 2  Value after iter--: 2  Value after iter--: 1”的输出，发现前置自减和后置自减运算符的结果是正确的。
+
+\section{测试的结果}
+
+测试结果一切正常。详细的结果见上文的测试程序的设计思路部分。
+
+我用 valgrind 进行测试，发现没有发生内存泄露。
+
+\section{（可选）bug报告}
+
+我发现了一个 bug，触发条件如下：
+
+\begin{enumerate}
+    \item 首先……
+    \item 然后……
+    \item 此时发现……
+\end{enumerate}
+
+据我分析，它出现的原因是：
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
