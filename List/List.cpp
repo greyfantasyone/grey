@@ -26,6 +26,14 @@ int main() {
     std::cout << "Front: " << list.front() << std::endl; 
     std::cout << "Back: " << list.back() << std::endl; 
 
+    
+    // 测试迭代器
+    std::cout << "List elements: ";
+    for (auto it = list.begin(); it != list.end(); ++it) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
     // 测试 pop_front 和 pop_back
     list.pop_front();
     list.pop_back();
