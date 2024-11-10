@@ -190,7 +190,7 @@ public:
         return *this;
     }
 
-private:
+protected:
     /**
      * @brief 二叉树节点结构体
      */
@@ -199,6 +199,7 @@ private:
         Comparable element;  ///< 节点存储的元素
         BinaryNode *left;    ///< 左子节点指针
         BinaryNode *right;   ///< 右子节点指针
+        int height;          ///< 节点高度
 
         /**
          * @brief 构造函数，接受常量引用
@@ -207,8 +208,8 @@ private:
          * @param lt 左子节点指针
          * @param rt 右子节点指针
          */
-        BinaryNode(const Comparable &theElement, BinaryNode *lt, BinaryNode *rt)
-            : element{ theElement }, left{ lt }, right{ rt } {}
+        BinaryNode(const Comparable &theElement, BinaryNode *lt, BinaryNode *rt,int h = 1)
+            : element{ theElement }, left{ lt }, right{ rt },height{h} {}
 
         /**
          * @brief 构造函数，接受右值引用
@@ -217,8 +218,8 @@ private:
          * @param lt 左子节点指针
          * @param rt 右子节点指针
          */
-        BinaryNode(Comparable &&theElement, BinaryNode *lt, BinaryNode *rt)
-            : element{ std::move(theElement) }, left{ lt }, right{ rt } {}
+        BinaryNode(Comparable &&theElement, BinaryNode *lt, BinaryNode *rt,int h = 1)
+            : element{ std::move(theElement) }, left{ lt }, right{ rt }, height{h}{}
     };
 
     BinaryNode *root;  ///< 树的根节点指针
@@ -378,46 +379,90 @@ private:
         return new BinaryNode{t->element, clone(t->left), clone(t->right)};
     }
 
-BinaryNode* detachMin(BinaryNode *&t) {
+ BinaryNode *detachMin(BinaryNode *&t) {
     if (t == nullptr) {
         return nullptr;
     }
-    BinaryNode* parent = nullptr;
-    BinaryNode* current = t;
-    while (current->left != nullptr) {
-        parent = current;
-        current = current->left;
+    if (t->left == nullptr) {
+        BinaryNode *minNode = t;
+        t = t->right;
+        return minNode;
     }
-    BinaryNode* newNode = new BinaryNode{current->element, nullptr, nullptr};
-    if (parent != nullptr) {
-        parent->left = current->right;
-    } else {
-        t = current->right;
-    }
-    delete current;
-    return newNode;
+    return detachMin(t->left);
 }
-    void remove(const Comparable &x, BinaryNode *&t) {
+   void remove(const Comparable &x, BinaryNode *&t) {
     if (t == nullptr) {
-        return; 
+        return;
     }
     if (x < t->element) {
         remove(x, t->left);
     } else if (x > t->element) {
         remove(x, t->right);
     } else {
-        if (t->left != nullptr && t->right != nullptr) {  
+        if (t->left != nullptr && t->right != nullptr) {
             BinaryNode *minNode = detachMin(t->right);
             minNode->left = t->left;
             minNode->right = t->right;
             delete t;
             t = minNode;
-        } else { 
+        } else {
             BinaryNode *oldNode = t;
             t = (t->left != nullptr) ? t->left : t->right;
             delete oldNode;
         }
     }
-};
+    balance(t); 
+}
+void balance(BinaryNode *&t) {
+    if (t == nullptr) {
+        return;
+    }
 
+    if (height(t->left) - height(t->right) > 1) {
+        if (height(t->left->left) >= height(t->left->right)) {
+            rotateWithLeftChild(t);
+        } else {
+            doubleWithLeftChild(t);
+        }
+    } else if (height(t->right) - height(t->left) > 1) {
+        if (height(t->right->right) >= height(t->right->left)) {
+            rotateWithRightChild(t);
+        } else {
+            doubleWithRightChild(t);
+        }
+    }
+    updateHeight(t);
+}
+int height(BinaryNode *t) const {
+    return t == nullptr ? 0 : t->height;
+}
+void updateHeight(BinaryNode *t) {
+    if (t != nullptr) {
+        t->height = std::max(height(t->left), height(t->right)) + 1;
+    }
+}
+void rotateWithLeftChild(BinaryNode *&k2) {
+    BinaryNode *k1 = k2->left;
+    k2->left = k1->right;
+    k1->right = k2;
+    updateHeight(k2);
+    updateHeight(k1);
+    k2 = k1;
+}
+void rotateWithRightChild(BinaryNode *&k1) {
+    BinaryNode *k2 = k1->right;
+    k1->right = k2->left;
+    k2->left = k1;
+    updateHeight(k1);
+    updateHeight(k2);
+    k1 = k2;
+}
+void doubleWithLeftChild(BinaryNode *&k3) {
+    rotateWithRightChild(k3->left);
+    rotateWithLeftChild(k3);
+}
+void doubleWithRightChild(BinaryNode *&k1) {
+    rotateWithLeftChild(k1->right);
+    rotateWithRightChild(k1);
+}
 };
