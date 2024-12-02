@@ -1,0 +1,90 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+
+
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{郭子昊, 3230104714}
+\chead{数据结构与算法第七次作业}
+\rhead{Dec.2nd, 2024}
+
+\section{对HeapSort的阐述和分析}
+在\texttt{heapSort} 函数中，我使用将向量转换为堆，然后使用 \texttt{std::make\_heap} 逐个将堆顶元素（最大元素）移到当前范围的末尾，并调整剩余元素使其仍为堆。
+最终，令向量 vec 中的元素按升序排列。
+关于check函数：我希望check函数实现检查向量是否按升序排列的功能，所以我使用了一个for循环，检查vec[i-1]是否小于vec[i]，如果不是则返回false，否则返回true。  
+然后我设计了四个函数来生成随机、有序、逆序、部分重复四种序列。
+对于测试流程，我首先生成一个随机序列，然后调用\texttt{heapSort}函数对其进行排序，然后调用check函数检查排序结果是否正确。同时记录排序时间和用 \texttt{std::make\_heap} 进行排序的时间并比较。
+同理操作有序、逆序、部分重复四种序列。最后将结果输出到文件中。
+效率表格如下
+
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+ & my heapsort time &\texttt{std::make\_heap} \\
+\hline
+random sequence & 0.0774519s & 0.0726108s \\
+\hline
+ordered sequence & 0.0305473s & 0.0289308s \\
+\hline
+reverse sequence & 0.035277s & 0.0330002s \\
+\hline
+repetitive sequence & 0.0496237s & 0.0451618s \\
+\hline
+\end{tabular}
+\caption{堆排序与 \texttt{std::make\_heap}  的时间对比}
+\label{tab:example}
+\end{table}
+
+
+\section{补充}
+
+经过理论计算，\texttt{heapSort}的时间复杂度应该是$O(n\log n)$，而\texttt{std::sort\_heap}的时间复杂度也是$O(n\log n)$。
+理论上两者的时间复杂度是相同的。
+但是在实际测试中，我发现\texttt{std::sort\_heap}的时间要比\texttt{heapSort}的时间要短，
+猜测可能是因为\texttt{std::sort\_heap}是STL中的一个函数，它的实现可能比我自己写的\texttt{heapSort}更加高效。
+
+
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
