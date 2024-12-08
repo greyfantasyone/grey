@@ -23,7 +23,7 @@ double ExpressionEvaluator::parseExpression(const std::string& expression, size_
         if (op != '+' && op != '-') break;
         ++pos;
         skipWhitespace(expression, pos);
-        if (pos < expression.length() && (expression[pos] == '+' || expression[pos] == '-' || expression[pos] == '*' || expression[pos] == '/')) {
+        if (pos < expression.length() && (expression[pos] == '+'  || expression[pos] == '*' || expression[pos] == '/')) {
             throw std::runtime_error("ILLEGAL");
         }
         double term = parseTerm(expression, pos);
@@ -44,6 +44,10 @@ double ExpressionEvaluator::parseTerm(const std::string& expression, size_t& pos
         char op = expression[pos];
         if (op != '*' && op != '/') break;
         ++pos;
+        skipWhitespace(expression, pos);
+        if (pos < expression.length() && (expression[pos] == '+' || expression[pos] == '-')) {
+            throw std::runtime_error("ILLEGAL");
+        }
         double factor = parseFactor(expression, pos);
         if (op == '*') {
             result *= factor;
