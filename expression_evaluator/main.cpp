@@ -3,6 +3,7 @@
 #include <cmath>
 #include <sstream>
 #include <iostream>
+#include <string>
 
 double ExpressionEvaluator::evaluate(const std::string& expression) {
     size_t pos = 0;
@@ -23,9 +24,6 @@ double ExpressionEvaluator::parseExpression(const std::string& expression, size_
         if (op != '+' && op != '-') break;
         ++pos;
         skipWhitespace(expression, pos);
-        if (pos < expression.length() && (expression[pos] == '+'  || expression[pos] == '*' || expression[pos] == '/')) {
-            throw std::runtime_error("ILLEGAL");
-        }
         double term = parseTerm(expression, pos);
         if (op == '+') {
             result += term;
@@ -45,14 +43,13 @@ double ExpressionEvaluator::parseTerm(const std::string& expression, size_t& pos
         if (op != '*' && op != '/') break;
         ++pos;
         skipWhitespace(expression, pos);
-        if (pos < expression.length() && (expression[pos] == '+' || expression[pos] == '-')) {
-            throw std::runtime_error("ILLEGAL");
-        }
         double factor = parseFactor(expression, pos);
         if (op == '*') {
             result *= factor;
         } else {
-            if (factor == 0) throw std::runtime_error("ILLEGAL");
+              if (factor == 0) {
+                throw std::runtime_error("ILLEGAL");
+            }
             result /= factor;
         }
     }
@@ -61,68 +58,44 @@ double ExpressionEvaluator::parseTerm(const std::string& expression, size_t& pos
 
 double ExpressionEvaluator::parseFactor(const std::string& expression, size_t& pos) {
     skipWhitespace(expression, pos);
-    if (pos >= expression.length()) throw std::runtime_error("ILLEGAL");
-
-    char c = expression[pos];
-    if (c == '(') {
+    bool negative = false;
+    if (expression[pos] == '-') {
+        negative = true;
         ++pos;
-        double result = parseExpression(expression, pos);
         skipWhitespace(expression, pos);
-        if (pos >= expression.length() || expression[pos] != ')') {
+    }
+    double result;
+    if (expression[pos] == '(') {
+        ++pos;
+        result = parseExpression(expression, pos);
+        if (expression[pos] != ')') {
             throw std::runtime_error("ILLEGAL");
         }
         ++pos;
-        return result;
-    } else if (c == '+' || c == '-') {
-        ++pos;
-        double factor = parseFactor(expression, pos);
-        return (c == '-') ? -factor : factor;
     } else {
-        return parseNumber(expression, pos);
-    }
-}
-
-double ExpressionEvaluator::parseNumber(const std::string& expression, size_t& pos) {
-    skipWhitespace(expression, pos);
-    size_t start = pos;
-    bool hasDecimal = false;
-    bool hasExponent = false;
-
-    if (expression[pos] == '+' || expression[pos] == '-') {
-        ++pos;
-    }
-
-    while (pos < expression.length() && (std::isdigit(expression[pos]) || expression[pos] == '.')) {
-        if (expression[pos] == '.') {
-            if (hasDecimal) throw std::runtime_error("ILLEGAL");
-            hasDecimal = true;
-        }
-        ++pos;
-    }
-
-    if (pos < expression.length() && (expression[pos] == 'e' || expression[pos] == 'E')) {
-        hasExponent = true;
-        ++pos;
-        if (pos < expression.length() && (expression[pos] == '+' || expression[pos] == '-')) {
+        size_t startPos = pos;
+        while (pos < expression.length() && (isdigit(expression[pos]) || expression[pos] == '.' || expression[pos] == 'e' || expression[pos] == 'E' || (expression[pos] == '-' && (expression[pos-1] == 'e' || expression[pos-1] == 'E')))) {
             ++pos;
         }
-        if (pos >= expression.length() || !std::isdigit(expression[pos])) {
+        if (startPos == pos) {
             throw std::runtime_error("ILLEGAL");
         }
-        while (pos < expression.length() && std::isdigit(expression[pos])) {
-            ++pos;
+        try {
+            result = std::stod(expression.substr(startPos, pos - startPos));
+        } catch (const std::invalid_argument&) {
+            throw std::runtime_error("ILLEGAL");
+        } catch (const std::out_of_range&) {
+            throw std::runtime_error("ILLEGAL");
         }
     }
-
-    if (start == pos) {
-        throw std::runtime_error("ILLEGAL");
+    if (negative) {
+        result = -result;
     }
-
-    return std::stod(expression.substr(start, pos - start));
+    return result;
 }
 
 void ExpressionEvaluator::skipWhitespace(const std::string& expression, size_t& pos) {
-    while (pos < expression.length() && std::isspace(expression[pos])) {
+    while (pos < expression.length() && isspace(expression[pos])) {
         ++pos;
     }
 }
@@ -143,7 +116,7 @@ int main() {
             double result = evaluator.evaluate(expression);
             std::cout << "结果: " << result << std::endl;
         } catch (const std::runtime_error& e) {
-            std::cout << e.what() << std::endl;
+            std::cout << "错误: " << e.what() << std::endl;
         }
     }
 
