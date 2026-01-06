@@ -1,0 +1,118 @@
+\documentclass[tikz, border=10pt]{standalone}
+\usepackage{ctex} % 中文支持
+\usepackage{tikz}
+% 加载 calc 用于坐标计算，加载 backgrounds 用于调整层级
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, backgrounds}
+
+\begin{document}
+
+\begin{tikzpicture}[
+    % 样式定义
+    node distance=1.0cm,
+    base/.style={
+        draw=black!70, 
+        thick, 
+        align=center, 
+        font=\small
+    },
+    startstop/.style={
+        base, 
+        rectangle, 
+        rounded corners, 
+        fill=red!10, 
+        minimum width=3cm, 
+        minimum height=1cm
+    },
+    process/.style={
+        base, 
+        rectangle, 
+        fill=orange!10, 
+        minimum width=3.5cm, 
+        minimum height=1cm
+    },
+    decision/.style={
+        base, 
+        diamond, 
+        aspect=2.5, 
+        fill=blue!10, 
+        inner sep=2pt
+    },
+    stepnode/.style={
+        base,
+        rectangle,
+        fill=yellow!10,
+        minimum width=3cm,
+        minimum height=0.8cm
+    },
+    arrow/.style={-Stealth, thick, draw=black!80}
+]
+
+    % 1. 流程节点
+    \node[startstop] (start) {用户调用 \texttt{game.run()}};
+    
+    \node[process, below=of start] (turn) {轮到 AI 玩家 \\ \texttt{ai\_player.get\_move()}};
+    
+    \node[process, below=of turn] (search) {\texttt{MonteCarlo.search()}};
+    
+    \node[decision, below=of search] (check) {use\_network?};
+    
+    % 分支
+    \node[process, below left=0.8cm and -0.5cm of check] (net) {\texttt{search\_by\_network()}};
+    \node[process, below right=0.8cm and -0.5cm of check] (mcts) {\texttt{search\_by\_mcts()}};
+    
+    % MCTS 循环部分 (手动布局)
+    % 先定义循环内的四个步骤
+    % 这里的 coordinate 用于辅助定位
+    \node[coordinate, below=2.5cm of check] (loop_start) {};
+    
+    \node[stepnode, below=0.5cm of loop_start] (select) {1. 选择 (Select)};
+    \node[stepnode, below=0.3cm of select] (expand) {2. 扩展 (Expand)};
+    \node[stepnode, below=0.3cm of expand] (sim) {3. 模拟 (Simulation)};
+    \node[stepnode, below=0.3cm of sim] (back) {4. 反向传播 (Backprop)};
+    
+    % 2. 绘制背景虚线框 (替代之前的 fit)
+    % 使用 calc 计算：左上角 = select左上角 + 偏移，右下角 = back右下角 + 偏移
+    \begin{scope}[on background layer]
+        \draw[dashed, thick, draw=gray!60, fill=gray!5] 
+            ($(select.north west)+(-0.3, 0.8)$) rectangle ($(back.south east)+(0.3, -0.3)$);
+        
+        % 添加虚线框的标题
+        \node[above, font=\bfseries\footnotesize] at ($(select.north)+(0, 0.4)$) {build\_montecarlo\_tree() (30秒)};
+    \end{scope}
+
+    % 3. 结果
+    \node[process, below=1.0cm of back] (best) {返回 \texttt{best\_action}};
+    \node[startstop, below=of best] (end) {游戏执行走法};
+
+    % --- 连线 ---
+    
+    \draw[arrow] (start) -- (turn);
+    \draw[arrow] (turn) -- (search);
+    \draw[arrow] (search) -- (check);
+    
+    % 判断连线
+    \draw[arrow] (check) -| node[midway, above] {Yes} (net);
+    \draw[arrow] (check) -| node[midway, above] {No} (mcts);
+    
+    % 汇聚到循环 (指向 Select)
+    \draw[arrow] (net) |- ($(select.north)+(0,0.2)$) -- (select.north);
+    \draw[arrow] (mcts) |- ($(select.north)+(0,0.2)$) -- (select.north);
+    
+    % 循环内部连线
+    \draw[arrow] (select) -- (expand);
+    \draw[arrow] (expand) -- (sim);
+    \draw[arrow] (sim) -- (back);
+    
+    % 回环线 (While True)
+    \draw[arrow] (back.east) -- ++(0.5,0) |- (select.east);
+    % 在回环线旁边添加文字
+    \node[right=0.6cm of expand, font=\footnotesize, align=left] {While True \\ (循环)};
+
+    % 结束连线
+    % 从虚线框底部穿出，为了美观，从 Back 节点连出，穿过虚线框
+    \draw[arrow] (back.south) -- (best);
+    \draw[arrow] (best) -- (end);
+
+\end{tikzpicture}
+
+\end{document}

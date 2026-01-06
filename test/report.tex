@@ -1,0 +1,67 @@
+\documentclass[tikz, border=10pt]{standalone}
+\usepackage{ctex} % 支持中文的关键宏包
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
+
+\begin{document}
+
+\begin{tikzpicture}[
+    % 定义节点样式
+    node distance=1.8cm,
+    base/.style={
+        rectangle, 
+        rounded corners, 
+        draw=black!70, 
+        thick, 
+        align=center, 
+        minimum height=1.6cm, 
+        minimum width=2.8cm
+    },
+    input/.style={base, fill=blue!10},
+    hidden/.style={base, fill=orange!10},
+    output/.style={base, fill=green!10},
+    arrow/.style={-Stealth, thick, draw=black!80}
+]
+
+    % 1. 输入层
+    \node[input] (in) {\textbf{输入层} \\ (64维向量) \\ \footnotesize{扁平化棋盘}};
+
+    % 2. 隐藏层 1
+    \node[hidden, right=of in] (h1) {\textbf{隐藏层 1} \\ (128维) \\ \footnotesize{ReLU 非线性映射}};
+
+    % 3. 隐藏层 2
+    \node[hidden, right=of h1] (h2) {\textbf{隐藏层 2} \\ (64维) \\ \footnotesize{ReLU 特征压缩}};
+
+    % 4. 输出层
+    \node[output, right=of h2] (out) {\textbf{输出层} \\ (2维输出) \\ \footnotesize{局面估值}};
+
+    % 5. 结果分支 (用于展示黑白棋估值)
+    \node[coordinate, right=1cm of out] (split) {};
+    
+    % 绘制黑棋圆点
+    \node[draw, circle, fill=black, text=white, inner sep=2pt, right=1.8cm of out, yshift=0.6cm] (black) {\small 值};
+    % 绘制白棋圆点
+    \node[draw, circle, fill=white, draw=black, text=black, inner sep=2pt, right=1.8cm of out, yshift=-0.6cm] (white) {\small 值};
+    
+    % 标签
+    \node[right=0.1cm of black, align=left, font=\scriptsize] {黑棋胜率评估};
+    \node[right=0.1cm of white, align=left, font=\scriptsize] {白棋胜率评估};
+
+    % 绘制连线
+    \draw[arrow] (in) -- node[midway, above, font=\scriptsize] {全连接} (h1);
+    \draw[arrow] (h1) -- node[midway, above, font=\scriptsize] {全连接} (h2);
+    \draw[arrow] (h2) -- node[midway, above, font=\scriptsize] {线性映射} (out);
+    
+    % 输出分叉线
+    \draw[thick] (out.east) -- (split);
+    \draw[arrow] (split) |- (black.west);
+    \draw[arrow] (split) |- (white.west);
+
+    % 顶部标题
+    \node[above=0.5cm of h1, font=\bfseries] {黑白棋 AI 评估网络 (MLP) 数据流};
+
+\end{tikzpicture}
+
+
+
+\end{document}

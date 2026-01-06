@@ -1,0 +1,1500 @@
+\documentclass[UTF8, a4paper, 12pt]{ctexart}
+
+%=================== 宏包引用 ===================
+\usepackage{geometry}           % 页面布局
+\usepackage{amsfonts, amsmath, amssymb, amsthm} % 数学公式符号
+\usepackage{graphicx}           % 图片插入
+\usepackage{float}              % 浮动体控制
+\usepackage{caption}            % 图表标题
+\usepackage{fancyhdr}           % 页眉页脚
+\usepackage{listings}           % 代码抄录
+\usepackage{xcolor}             % 颜色支持
+\usepackage{booktabs}           % 三线表
+\usepackage{hyperref}           % 超链接与书签
+% 在导言区添加 TikZ 支持
+\usepackage{tikz}
+\usetikzlibrary{shapes, arrows, positioning, calc}
+
+%=================== 页面设置 ===================
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+
+%=================== 标题格式修正 ===================
+% 强制一级标题左对齐，取消默认的居中
+\ctexset{
+    section = {
+        format = \Large\bfseries\raggedright, % 左对齐
+        aftername = \hspace{1em} 
+    }
+}
+
+%=================== 代码高亮设置 ===================
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=Matlab,
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=single
+}
+
+%=================== 常用数学命令 ===================
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+
+%=================== 页眉页脚设置 ===================
+\pagestyle{fancy}
+\fancyhead{} 
+\lhead{郭子昊, 3230104714}
+\chead{智能控制技术：神经网络控制作业}
+\rhead{\today}
+\cfoot{\thepage}
+
+%=================== 文档开始 ===================
+\begin{document}
+
+%------------------- 封面部分 -------------------
+\begin{center}
+    \vspace*{1cm}
+    \huge\bfseries 智能控制技术作业报告\\[0.5cm]
+    \Large —— 基于神经网络的 USV 航向控制\\[2cm]
+    
+    \large
+    \begin{tabular}{rl}
+        \textbf{姓名：} & 郭子昊 \\
+        \textbf{学号：} & 3230104714 \\
+        \textbf{课程：} & 智能控制技术 \\
+        \textbf{日期：} & \today \\
+    \end{tabular}
+\end{center}
+\vspace{2cm}
+\thispagestyle{empty}
+\newpage
+\setcounter{page}{1}
+
+%------------------- 正文部分 -------------------
+
+\section{问题描述与被控对象}
+
+\subsection{问题描述}
+
+考虑与前面作业中相同的无人水面艇（USV）航向跟踪控制系统，通过调节舵角 $\delta$，使船舶航向 $\psi$ 能够跟踪时变的参考航向 $\psi_{ref}(t)$，参考信号为正弦信号：
+\begin{equation}
+    \psi_{ref}(t) = 0.2 \sin(0.1t)
+\end{equation}
+
+具体实验任务如下：
+\begin{enumerate}
+    \item 在 Matlab 中利用已给的带扰动噪声系统模型采集系统的输入输出数据，采用 BP 神经网络作为辨识模型，建立 USV 的神经网络辨识模型，并分析辨识结果的精度。
+    \item 设计一个 BP 神经网络直接作为控制器，画出该直接神经网络控制系统的结构框图，利用梯度下降法，推导该神经网络控制器的权值在线更新律，并进行控制系统仿真。在仿真中分别采用符号近似法和神经网络估计法估计未知系统 Jacobian。
+    \item 用一个 BP 神经网络在线调整 PID 控制器的参数，画出该神经网络 PID 控制系统的结构框图，同样利用梯度下降法，推导神经网络的权值更新律，并进行控制系统仿真。
+    \item （附加题）借鉴模糊自适应相同的方式，设计针对仿射非线性 USV 模型的神经网络自适应控制器，给出控制律和自适应律，并进行仿真。（提示：模糊逼近可以用 RBF 神经网络逼近代替，RBF 网络即为激发函数为高斯函数的前向网络）。
+\end{enumerate}
+
+\subsection{USV 数学模型}
+无人艇的非线性动力学模型如下：
+\begin{equation}
+    T\dot{\psi} + K H(\dot{\psi}) = K \delta + d(t)
+    \label{eq:usv_model}
+\end{equation}
+其中，非线性函数 $H(\dot{\psi}) = \alpha \dot{\psi} + \beta \dot{\psi}^3$。相关参数设置为 $T=2.0s, K=0.8, \alpha=1.0, \beta=0.5$。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure/USV_model.png}
+    \caption{USV模型示意图}
+    \label{fig:usv_model}
+\end{figure}
+
+注意到，在此前的作业中，我已经详细地分析和实现了该 USV 模型的 Simulink 仿真模块，此处不再赘述，直接利用该模型进行神经网络控制实验。
+% 将 & 改为 and 以避免书签报错
+\section{任务一：神经网络系统辨识}
+整体神经网络的离线辨识建模如下：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure/nn_identification.png}
+    \caption{神经网络辨识系统结构图}
+    %\label{fig:nn_identification}
+\end{figure}
+
+\subsection{设计思路与数据采集}
+
+设计思路如下，
+进行控制系统设计之前，首要任务是建立被控对象（USV）的精确数学模型或辨识模型。尽管已知 USV 的动力学方程，但在实际工程中，非线性项（如 $H(\dot{\psi})$）往往难以精确获得。
+这是工程意义上的原因，客观意义上，结合课堂上的学习，我采用 BP 神经网络作为黑箱辨识器，利用输入输出数据来逼近 USV 的非线性动态特性。
+USV 是连续系统，而神经网络是离散计算的。设定采样时间 $T_s=0.1s$，采集离散的输入序列 $u(k)$ 和输出序列 $y(k)$。
+
+在数据采集实现上，我在 Simulink 中搭建了数据采集回路。模型如下，对应文件夹中的untitled.slx文件。
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure/data_collect.png}
+    \caption{数据采集回路}
+    \label{fig:nn_identification}
+\end{figure}
+
+我通过功率为0.0001的随机白噪声叠加一个正弦波模块产生一组随机变化的舵角信号 $\delta$ 输入给 USV 模型，
+并记录对应的航向角 $\psi$。在采样时间为2000s，步长为0.1s下，共采集了 20000 组样本数据，分为训练集（前15000组）和测试集（后5000组），用于神经网络的离线预训练。
+
+\subsection{神经网络辨识模型搭建}
+
+基于采集的数据，我设计了一个基于 BP 算法的前馈神经网络辨识器（NN Identifier）。
+\subsubsection{网络结构设计}
+根据 USV 的二阶系统特性，为了完整捕获系统动态，选取了 5 个变量作为神经网络的输入层节点：
+\begin{equation}
+    x(k) = [y(k), y(k-1), y(k-2), u(k), u(k-1)]^T
+\end{equation}
+其中，$y(k)$ 为当前时刻的航向角，$u(k)$ 为当前时刻的舵角。
+
+网络结构参数设置如下：
+\begin{itemize}
+    \item 输入层：5 个神经元。
+    \item 隐含层：30 个神经元。节点数根据经验公式及反复测试确定，采用 $\tanh$ (双曲正切) 作为激活函数，以捕捉非线性特征。
+    \item 输出层：1 个神经元。对应下一时刻的预测输出 $\hat{y}(k+1)$，采用 Linear (线性) 激活函数。
+\end{itemize}
+
+\subsubsection{训练过程实现}
+我编写了 MATLAB 脚本对采集到的输入输出数据进行处理与离线训练，实际代码如下，保存为文件train\_usv.m在文件夹中。
+
+\begin{lstlisting}
+%% 1. 数据提取
+if exist('out', 'var')
+    u_data = out.sim_u;
+    y_data = out.sim_y;
+else
+    error('错误：未找到 out 变量！请先运行 Simulink 模型采集数据。');
+end
+
+% 数据长度
+L = length(u_data);
+
+%% 2. 构建训练集 
+
+start_idx = 3; 
+end_idx = L - 1;
+
+P_train = [y_data(start_idx:end_idx)'; ...     % y(k)
+           y_data(start_idx-1:end_idx-1)'; ... % y(k-1)
+           y_data(start_idx-2:end_idx-2)'; ... % y(k-2) 
+           u_data(start_idx:end_idx)'; ...     % u(k)
+           u_data(start_idx-1:end_idx-1)'];    % u(k-1) 
+
+T_train = y_data(start_idx+1:end_idx+1)';      % y(k+1)
+
+%% 3. 训练
+net = feedforwardnet(30, 'trainlm');
+net.trainParam.goal = 1e-12;          % 目标设高一点
+net.trainParam.min_grad = 1e-15;   % 防止因梯度太小提前停止
+net.trainParam.epochs = 1000;
+[net, tr] = train(net, P_train, T_train);
+
+%% 4. 生成模块
+gensim(net, -1);
+
+disp('已生成 Simulink 神经网络模块，请查看弹出的窗口。');
+\end{lstlisting}
+
+训练后得到的神经网络模型在 Simulink 中生成了一个可调用的模块,命名为 Feed-Forward Neural Network。
+图片如下所示，相关模型亦保存为untitled1.slx文件在文件夹中。
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{figure/lsmodel.png}
+    \caption{离线神经网络模块示意图}
+    \label{fig:lsmodel}
+\end{figure}
+
+\subsection{辨识结果分析}
+基于搭建的神经网络辨识模型，在随机舵角信号激励下进行了在线辨识仿真验证，结果如下图所示。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figure/TASK1.png}
+    \caption{神经网络辨识性能验证：(左) 辨识输出 $\hat{y}$ 与真实输出 $y$ 对比；(右) 辨识误差演化曲线}
+    \label{fig:TASK1}
+\end{figure}
+
+从仿真结果可以得出以下分析结论：
+
+\begin{enumerate}
+    \item 动态逼近能力强：观察左图可知，神经网络的预测输出 $\hat{y}(k)$（蓝线）与 USV 的真实航向响应 $y(k)$（黄线）几乎完全重合。无论是在信号的上升沿、下降沿还是峰值处，网络均未表现出明显的相位滞后或幅值衰减，说明该模型具备足够的模型容量来捕捉 USV 的二阶非线性惯性特征。  
+    \item 辨识精度满足要求：右图展示了辨识误差 $e(k) = y(k) - \hat{y}(k)$ 的时域变化。可以看出，在仿真初期的短暂权值调整后，误差迅速收敛并稳定在 $\pm 0.02$ rad 的极小范围内（约为信号幅值的 1\% 以下）。这种低数量级的残差表明，神经网络已经成功建立了从舵角输入到航向输出的高精度映射。   
+\end{enumerate}
+
+综上所述，该神经网络辨识器性能优异，能够为后续的控制器设计提供可靠的模型基础。
+
+\section{任务二：基于 BP 神经网络的直接控制}
+
+\subsection{控制系统结构设计}
+
+在本环节中，我需要设计一个 BP 神经网络直接充当控制器，神经网络控制器通过学习从误差状态到控制量 $u$ 的映射关系，直接输出舵角 $\delta$。
+
+\subsubsection{系统结构框图}
+该直接控制系统的结构如图所示。系统主要由三个部分组成：
+\begin{enumerate}
+    \item 控制器：一个三层 BP 神经网络，输入为参考航向 $y_r$ 与实际航向 $y$ 的误差信号，输出为控制量 $u(k)$。
+    \item 被控对象：USV 非线性模型。
+    \item 辨识器：即神经网络，用于在“神经网络估计法”中提供系统的灵敏度信息（Jacobian）。
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    
+    \begin{tikzpicture}[auto, node distance=2cm,>=latex',
+        % 定义样式
+        % 蓝色方框样式 (控制器和对象)
+        block/.style = {draw, rectangle, minimum height=1.2cm, minimum width=3.0cm, align=center, fill=blue!5}, 
+        % 黄色圆角方框样式 (估计器) - 稍微加宽以适应中文 multiline text
+        est/.style = {draw, rectangle, minimum height=1.4cm, minimum width=4.2cm, align=center, fill=yellow!10, rounded corners}, 
+        sum/.style = {draw, circle, inner sep=2pt, node distance=1.5cm},
+        input/.style = {coordinate},
+        output/.style = {coordinate}
+    ]
+
+        % 1. 定义节点 (Nodes)
+        \node [input] (input) {};
+        \node [sum, right of=input] (sum) {};
+        
+        % 翻译: BP Neural Controller -> BP 神经网络控制器
+        \node [block, right of=sum, node distance=3.8cm] (ctrl) {\textbf{BP 神经网络}\\\textbf{控制器}};
+        
+        % 翻译: Plant (USV) -> 被控对象 (USV)
+        \node [block, right of=ctrl, node distance=4.2cm] (plant) {\textbf{被控对象}\\\textbf{(USV)}};
+        \node [output, right of=plant, node distance=2.5cm] (out) {};
+        
+        % Jacobian 估计器 (放在下方)
+        % 翻译标题: Jacobian Estimator -> Jacobian 估计器
+        % 翻译子标题: (NN Identifier / Sign) -> (神经网络辨识器 / 符号函数)
+        \node [est, below of=ctrl, node distance=2.8cm, xshift=2.2cm] (est) {\textbf{Jacobian 估计器}\\(\small 神经网络辨识器 / 符号函数)};
+
+        % 2. 绘制连线 (Connections) - 前向通路 (黑色实线)
+        \draw [->, thick] (input) -- node {$y_r$} (sum);
+        \draw [->, thick] (sum) -- node {$e$} (ctrl);
+        \draw [->, thick] (ctrl) -- node [name=u] {$u$} (plant);
+        \draw [->, thick] (plant) -- node [name=y] {$y$} (out);
+        
+        % 比较器的符号 (+/-)
+        \node at (sum.north west) [xshift=-2pt, yshift=2pt] {$+$};
+        \node at (sum.south) [yshift=-5pt, xshift=-5pt] {$-$};
+
+        % 3. 绘制反馈回路 (Feedback)
+        % 反馈线适当调低以避免穿过估计器模块
+        \draw [->, thick] ($(plant.east)+(1.5cm,0)$) |- (0,-4.5) -| (sum);
+        
+        % 4. 绘制 Jacobian 信息通路 (红色虚线 - 学习通道)
+        % u -> Estimator 分叉点
+        \coordinate (u_split) at ($(ctrl.east)!0.5!(plant.west)$);
+        \draw [dashed] (u_split) |- (est.east); 
+        
+        % Estimator -> Controller (梯度信息反馈)
+        % 翻译标签: Jacobian Info \partial y / \partial u -> Jacobian 信息 \partial y / \partial u
+        \draw [->, dashed, red, line width=1pt] (est.west) -| node [pos=0.2, left, text=red, align=center] {Jacobian 信息\\$\partial y / \partial u$} (ctrl.south);
+
+    \end{tikzpicture}
+    \caption{ BP 神经网络直接控制系统结构框图}
+    \label{fig:direct_control_structure_cn}
+
+\end{figure}
+
+\subsection{控制器权值更新律推导}
+
+\subsubsection{性能指标函数}
+定义时刻 $k$ 的二次型性能指标函数 $J(k)$ 为：
+\begin{equation}
+    E(k) = \frac{1}{2} \left( y_d(k+1) - y(k+1) \right)^2 = \frac{1}{2} e(k+1)^2
+\end{equation}
+其中，$y_d$ 为期望输出，$y$ 为实际输出。
+
+\subsubsection{梯度下降法推导}
+根据梯度下降法，控制器权值 $w$ 的调整量 $\Delta w$ 应沿着性能指标函数梯度的负方向进行：
+\begin{equation}
+    \Delta w(k) = -\eta \frac{\partial E(k)}{\partial w(k)}
+\end{equation}
+其中 $\eta$ 为学习率。
+
+利用链式法则展开梯度项：
+\begin{equation}
+    \frac{\partial E(k)}{\partial w(k)} = \frac{\partial E(k)}{\partial y(k+1)} \cdot \frac{\partial y(k+1)}{\partial u(k)} \cdot \frac{\partial u(k)}{\partial w(k)}
+\end{equation}
+
+代入误差定义 $\frac{\partial E}{\partial y} = -(y_d - y) = -e$，则有：
+\begin{equation}
+    \frac{\partial E(k)}{\partial w(k)} = -e(k+1) \cdot \underbrace{\frac{\partial y(k+1)}{\partial u(k)}}_{\text{Jacobian Info}} \cdot \underbrace{\frac{\partial u(k)}{\partial w(k)}}_{\text{NN Gradient}}
+    \label{eq:chain_rule}
+\end{equation}
+
+由此得到权值在线更新律：
+\begin{equation}
+    w(k+1) = w(k) + \eta \cdot e(k+1) \cdot \frac{\partial y(k+1)}{\partial u(k)} \cdot \frac{\partial u(k)}{\partial w(k)}
+    \label{eq:update_law}
+\end{equation}
+
+其中：
+\begin{itemize}
+    \item $e(k+1)$：可直接观测。
+    \item $\frac{\partial u(k)}{\partial w(k)}$：可通过 BP 神经网络的反向传播算法计算。
+    \item $\frac{\partial y(k+1)}{\partial u(k)}$：即被控对象的Jacobian 信息（系统灵敏度）。由于 USV 模型是非线性的且环境未知，该项无法直接获得，需要进行估计。
+\end{itemize}
+
+需要注意的是，该项是在施加控制量 $u(k)$ 并经过一个采样周期 $T$ 后，在 $k+1$ 时刻实际测量得到的。
+这意味着权值的更新属于事后修正环节：即利用 $k+1$ 时刻观测到的结果，来修正网络参数以优化下一时刻 $k+1$ 的控制输出。
+
+在上述权值更新律中，$\frac{\partial u(k)}{\partial w(k)}$ 项反映了神经网络内部参数变化对控制输出的影响。
+本实验的直接神经控制器采用 2-6-1 结构，其中隐含层选用 Sigmoid 函数以引入非线性，输出层选用线性函数以覆盖舵角的全动态范围。具体推导如下：
+
+\paragraph{1. 输出层权值梯度 (线性激活)}
+设输出层输入为 $net^{(2)}$，输出为 $u(k)$。由于输出层采用线性激活函数（Linear Activation）：
+\begin{equation}
+    u(k) = net^{(2)} = \sum_{j=1}^{m} w_{j}^{(2)} H_j
+\end{equation}
+其中 $H_j$ 为隐层第 $j$ 个神经元的输出。因此，控制量 $u$ 对输出层权值 $w_{j}^{(2)}$ 的偏导数为：
+\begin{equation}
+    \frac{\partial u(k)}{\partial w_{j}^{(2)}} = H_j
+\end{equation}
+这对应了代码中输出层权值的更新逻辑：\texttt{dW2 = xite * delta3 * H'}。
+
+\paragraph{2. 隐含层权值梯度 (Sigmoid 激活)}
+隐含层神经元采用 Sigmoid 函数：
+\begin{equation}
+    H_j = \sigma(net_j^{(1)}) = \frac{1}{1 + e^{-net_j^{(1)}}}
+\end{equation}
+利用 Sigmoid 导数性质 $\sigma'(x) = \sigma(x)(1-\sigma(x))$，隐含层输出对输入的灵敏度为：
+\begin{equation}
+    \frac{\partial H_j}{\partial net_j^{(1)}} = H_j (1 - H_j)
+\end{equation}
+
+\paragraph{3. 完整的权值更新算式}
+综合上述推导，结合 Jacobian 信息 $\text{sgn}(\frac{\partial y}{\partial u})$，可得具体的权值修正公式：
+
+对于输出层权值 $w^{(2)}$：
+\begin{equation}
+    \Delta w^{(2)}(k) = \eta \cdot e(k+1) \cdot \text{sgn}\left(\frac{\partial y}{\partial u}\right) \cdot H^T
+\end{equation}
+
+对于隐层权值 $w^{(1)}$（利用反向传播将误差传递至隐层）：
+\begin{equation}
+    \Delta w^{(1)}(k) = \eta \cdot \delta^{(1)} \cdot x^T
+\end{equation}
+其中隐层局部梯度 $\delta^{(1)}$ 为：
+\begin{equation}
+    \delta^{(1)} = \left[ (w^{(2)})^T \cdot \left( e(k+1) \cdot \text{sgn}\left(\frac{\partial y}{\partial u}\right) \right) \right] \cdot \underbrace{H(1-H)}_{\text{激活函数导数}}
+\end{equation}
+以上推导完整揭示了直接神经网络控制器的权值在线更新机制，关键在于如何有效估计未知的 Jacobian 信息 $\frac{\partial y}{\partial u}$，这将在下一节中详细讨论。
+
+\subsection{Jacobian 信息的两种估计方法}
+
+为了解决未知 Jacobian 项 $\frac{\partial y}{\partial u}$ 的获取问题，我通过课程的学习，分别采用了以下两种方法进行对比仿真。
+
+\subsubsection{方法一：符号近似法}
+该方法基于对被控对象物理特性的定性分析。对于 USV 航向控制，舵角 $\delta$ 的变化方向与航向 $\psi$ 的变化方向通常是单调对应的，
+通过简单的开环测试，我得到了符号的正确结论，也就是正舵角导致正向转首。
+因此，可以用梯度的符号函数 $\text{sgn}(\frac{\partial y}{\partial u})$ 来代替精确值，并将幅值信息归并到学习率 $\eta$ 中。
+
+此时，Jacobian 项近似为：
+\begin{equation}
+    \frac{\partial y(k+1)}{\partial u(k)} \approx \text{sgn} \left( \frac{\partial y}{\partial u} \right)
+\end{equation}
+
+在实际代码实现中，我将该符号值设为常数 +1，进行后续的计算。
+这种方法计算简单，不需要额外的辨识模型，但由于缺乏精确的梯度幅值信息，可能导致收敛速度较慢或在平衡点附近产生震荡。
+
+符号似然法的模型实现如下图：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure/sign_approximation.png}
+    \caption{符号近似法的神经网络直接控制系统结构图}
+    \label{fig:sign_approximation}
+\end{figure}
+
+接下来我将附上我的符号近似法的神经网络控制器核心代码，如下所示：
+\begin{lstlisting}
+function [u, W1_out, W2_out] = fcn(yr, y)
+
+persistent W1 W2 e_prev is_init_final_trained
+
+% --- 1. 参数设置 ---
+xite  = 0.001;   
+alpha = 0.05;  
+
+% --- 2. 初始化---
+if isempty(is_init_final_trained)
+
+    W1 = [  2.8620, -0.04419;
+            0.8460, -0.009854;
+           -1.1170,  0.04621;
+           -1.0690,  0.04619;
+           -1.0230, -0.03447;
+           -0.9713,  0.04703 ]; 
+           
+    W2 = [ 3.853, 0.646, -1.196, -1.149, -1.102, -1.05 ];
+    
+    e_prev = 0;
+    is_init_final_trained = 1; 
+end
+
+% --- 3. 输入处理 ---
+e = yr - y;
+e_delta = e - e_prev; 
+xi = [e; e_delta]; 
+
+% --- 4. 前向计算 ---
+net2 = W1 * xi;
+H = 1 ./ (1 + exp(-net2)); 
+net3 = W2 * H;
+u_raw = net3; 
+
+% 物理限位
+if u_raw > 0.5
+    u = 0.5;
+elseif u_raw < -0.5
+    u = -0.5;
+else
+    u = u_raw;
+end
+
+% --- 5. 反向传播---
+sgn_Jacobian = 1; 
+
+% 权重更新
+delta3 = e * sgn_Jacobian * 1;
+
+% 输出层
+dW2 = xite * delta3 * H';
+W2 = W2 + dW2 + alpha * dW2;
+
+% 隐层
+d_sigma = H .* (1 - H) + 0.05; 
+delta2 = (W2' * delta3) .* d_sigma;
+
+dW1 = xite * delta2 * xi';
+W1 = W1 + dW1 + alpha * dW1;
+
+% --- 6. 更新历史 ---
+e_prev = e;
+
+W1_out = W1;
+W2_out = W2;
+
+end
+\end{lstlisting}
+\paragraph{代码详解与工程思考:}
+在控制调节的初期，我的初始化代码一开始采用的随机初始化权值的方法。然而，在实际仿真中发现，这种随机初始化往往导致控制器在初始阶段表现出剧烈的震荡，甚至无法稳定跟踪参考信号。
+后来经过我的调节和反复测试，我在一组训练的结果出发现神经网络在后期的控制效果较好，而前期因为初始化权值的随机和权值向正确方向不断调整，
+导致初期控制效果不佳。具体实验情况如下图：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{figure/direct_control_bad_init.png}
+    \caption{随机初始化权值导致的初期控制震荡}
+    \label{fig:bad_init}
+\end{figure}
+
+于是我开始思考猜想，如果我将后期训练好的权值直接加载进来，是否能避免初期的剧烈震荡，从而让控制器一开始就具备一定的稳态保持能力。
+所以我通过display输出最终的权值，并将其硬编码进初始化代码中，效果显著提升。具体代码如下：
+\begin{lstlisting}
+if isempty(is_init_final_trained)
+    W1 = [ 2.8620, -0.04419; ... ]; % 预训练好的权值
+    W2 = [ 3.853, 0.646, ... ];
+    ...
+end
+\end{lstlisting}
+
+在计算网络输出后，我引入了物理限幅环节，以模拟真实舵机的机械约束：
+\begin{lstlisting}
+% 物理限位
+if u_raw > 0.5
+    u = 0.5;
+elseif u_raw < -0.5
+    u = -0.5;
+...
+\end{lstlisting}
+
+这一设计防止了控制器输出超出执行机构的物理极限（$\pm 0.5$ rad），避免了执行器饱和带来的积分发散风险。
+
+在反向传播部分，最关键的创新点在于对 Jacobian 信息的简化处理：
+\begin{lstlisting}
+sgn_Jacobian = 1; 
+delta3 = e * sgn_Jacobian * 1;
+\end{lstlisting}
+
+我将未知的 Jacobian 信息 $\frac{\partial y}{\partial u}$ 简化为常数 \texttt{sgn\_Jacobian = 1}。
+这意味着控制器通过定性判断来决策：只要存在正向误差，就沿着增加 $u$ 的方向更新权值。这种策略虽然牺牲了部分动态响应的精细度，但有效地规避了复杂的在线辨识过程，显著提高了算法的实时性。
+
+同时，在反向传播更新权值时，我对标准的 Sigmoid 导数进行了改进：
+\begin{lstlisting}
+% 隐层梯度计算
+d_sigma = H .* (1 - H) + 0.05; 
+delta2 = (W2' * delta3) .* d_sigma;
+\end{lstlisting}
+
+标准的 Sigmoid 导数为 $f'(x) = f(x)(1-f(x))$。当神经元输出接近 0 或 1 ，也就是进入饱和区时，导数趋近于 0，会导致梯度消失，使得权值停止更新，系统陷入“死区”。
+为此，我在代码中人为增加了一个偏置项 \texttt{+ 0.05}。这一微小的改进保证了即使神经元进入饱和状态，梯度依然保持非零，权值仍能获得持续的更新动力。
+
+最后，在权值更新时，我引入了动量项以加速收敛：
+\begin{lstlisting}
+W1 = W1 + dW1 + alpha * dW1;
+\end{lstlisting}
+
+最终符号似然法的神经网络直接控制器的仿真结果如下图所示：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figure/direct_control_sign.png}
+    \caption{符号似然法的神经网络直接控制系统仿真结果}
+    \label{fig:direct_sign_res}
+\end{figure}
+
+不难发现，系统能够实现基本的跟踪功能，误差精度较好，仅为$10^{-3}$数量级，较出色地完成了控制任务。
+相较而言，波峰波谷处存在略大一些的超调和稳态误差。这是因为固定的符号梯度无法适应 USV 在不同航速和流场下的动态增益变化。
+
+\subsubsection{方法二：神经网络估计法}
+与符号近似法仅利用定性结论不同，神经网络估计法充分利用神经网络辨识器。
+该方法的核心思想是：利用辨识器所蕴含的数学模型，实时计算被控对象对控制输入的灵敏度信息（Jacobian）。
+
+
+根据的辨识结果，我们有 $\hat{y}(k+1) \approx y(k+1)$。因此，可以通过计算辨识器网络的偏导数来逼近真实的系统梯度：
+\begin{equation}
+    \frac{\partial y(k+1)}{\partial u(k)} \approx \frac{\partial \hat{y}(k+1)}{\partial u(k)}
+\end{equation}
+
+该偏导数可以通过对辨识器神经网络进行反向传播精确计算得到。这种方法不再依赖固定的符号常数，而是能够根据当前的系统状态（航向、航速、流场干扰等），
+动态地输出包含正确方向和精确幅值的梯度信息，从而指导控制器进行更精细的权值调整。
+
+神经网络估计法的控制系统实现如下图所示：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure/direct_control_NN.png}
+    \caption{神经网络估计法的神经网络直接控制系统结构图}
+    \label{fig:nn_estimation_structure}
+\end{figure}
+
+
+我将整个神经网络估计法的模型分成了两个部分，分别是“控制器模块”和“辨识器模块”，也就是图片中的NN\_Controller和NN\_Identifier。
+其中，辨识器模块采取在线辨识的代码实现，具体代码如下所示：
+
+\begin{lstlisting}
+function [J_est, y_hat] = fcn_Identifier(u, y)
+
+persistent W1 W2 b1 b2 u_prev u_prev2 y_prev y_prev2 is_init
+
+% --- 参数设置 ---
+xite_i = 0.05;   
+alpha_i = 0.05;
+
+if isempty(is_init)
+    
+    % W1 (30行, 5列) 
+    W1 = [ 1.1550    0.7454    0.9150   -1.5408   -1.6229;
+           1.2152   -1.3472   -0.6444   -1.1061    1.2901;
+          -1.5373   -0.9018    0.0650    0.3487   -1.7547;
+           1.7296   -1.6454    0.5698   -0.3121    0.4781;
+           0.5190   -1.3520    1.4344    1.3670    0.8669;
+          -1.2576    0.9733    1.3336   -0.8581    1.1981;
+          -1.1308    1.0980    0.3079    0.4444   -2.1551;
+           0.5900   -0.9220   -2.0974   -0.0998   -0.6876;
+           1.0608    1.0588   -1.3490   -1.3189   -0.2222;
+           1.5665   -1.4511   -0.5776   -0.4067    0.4901;
+          -1.5240   -0.3283    1.4332   -1.0913   -0.1751;
+           1.7472   -0.4401   -0.9080    1.1144    1.4263;
+           1.7463    1.0072    1.1938   -0.7705   -1.2222;
+          -0.3095    1.5289   -1.8743    0.4432   -0.6706;
+           1.0400   -1.1264    1.5059   -1.1677   -0.8901;
+          -1.2790    0.4603   -0.2956    0.9907   -1.3388;
+          -0.3413   -0.2105   -1.4706   -1.3012    1.5064;
+           1.2787    0.0876   -1.1741   -0.0728    0.0747;
+           1.9382    1.4027    0.7991    1.0716    0.1406;
+           1.7422    0.9102   -0.2330    0.8941   -1.3070;
+           1.3368   -1.0114   -0.7812   -0.4313    0.5677;
+          -1.8533    0.4552    0.9058   -1.4618    0.2583;
+           1.9096    0.8322    0.4428   -1.1921   -0.8640;
+           1.8041   -1.4068   -0.0001    1.3022   -0.3553;
+           0.4213   -1.7609    1.4647   -1.0283   -0.4767;
+           1.2781    0.1658   -0.7475    1.4139   -1.6666;
+           1.1649    2.1033    1.2228    0.1538   -1.1324;
+          -0.3621   -0.5653    1.0707    1.8713   -1.4119;
+           0.7797    0.4307   -0.5723   -1.8847   -1.2332;
+          -1.7767   -1.4851    0.3863   -0.2859   -1.5525 ]; 
+    
+    % b1 (30行, 1列) 
+    b1 = [-2.6178; -2.5214;  1.9676; -1.7376; -2.2797;
+           1.6096;  1.6080; -1.3758; -1.3612; -0.3427;
+           0.5525; -0.4758; -0.4769;  0.2875; -0.3108;
+          -0.5670;  0.0213;  0.1445;  0.6710;  1.0964;
+           1.0013; -1.4389;  1.2160;  1.2777;  1.7008;
+           2.3905;  1.6822; -2.5693;  2.5941; -2.4270 ];
+
+    % W2 (1行, 30列)
+    W2 = [ -0.0002, -0.8092, -0.0001,  0.6664, -0.0068,  0.1702, -0.0026, -0.0008, -0.0007, ...
+           -0.6598,  0.0105,  0.0000,  0.0000, -0.3008, -0.0000, -0.0437,  0.0024,  1.7531, ...
+            0.0003, -0.0031, -0.5625, -0.0489,  0.0001, -0.0809,  0.0014, -0.3007,  0.0003, ...
+            0.0603, -0.0001, -0.0007 ];
+    
+    % b2 (标量)
+    b2 = 0.0617;
+    
+    % 初始化历史状态
+    u_prev = 0; u_prev2 = 0;
+    y_prev = 0; y_prev2 = 0;
+    is_init = 1;
+end
+
+%  PART 1: 构造输入与前向计算
+xi_i = [y; y_prev; y_prev2; u; u_prev];
+
+% 前向计算 (使用 tanh)
+net_1 = W1 * xi_i + b1;      
+Hi = tanh(net_1);            
+y_hat = W2 * Hi + b2;        
+
+%  PART 2: 在线自适应 (反向传播)
+e_id = y - y_hat; 
+
+% 更新输出层
+delta3 = e_id; 
+dW2 = xite_i * delta3 * Hi';
+db2 = xite_i * delta3;
+
+W2 = W2 + dW2 + alpha_i * dW2;
+b2 = b2 + db2 + alpha_i * db2;
+
+% 更新隐层
+d_sigma = 1 - Hi.^2; % tanh 导数
+delta2 = (W2' * delta3) .* d_sigma;
+
+dW1 = xite_i * delta2 * xi_i';
+db1 = xite_i * delta2;
+
+W1 = W1 + dW1 + alpha_i * dW1;
+b1 = b1 + db1 + alpha_i * db1;
+
+%  PART 3: 计算 Jacobian 并输出
+raw_J = W2 * (d_sigma .* W1(:, 4)); 
+
+J_est = abs(raw_J); % 物理约束
+
+% 更新历史状态
+y_prev2 = y_prev;
+y_prev = y;
+
+u_prev2 = u_prev;
+u_prev = u;
+
+end
+\end{lstlisting}
+
+我在书写代码时，特别注意了辨识器的初始化处，我大胆猜想辨识模块的初始化权值也可以进行预处理权值输入，也就是
+将任务一中训练好的权值直接加载进来，从而提升辨识器的初始性能，结果表明这一方法同样有效，辨识器能够更快地收敛到较低的误差水平。同时
+还具有在线自适应能力，能够持续优化辨识精度。结果如下图所示：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figure/nn_identifier_performance.png}
+    \caption{神经网络辨识器的在线自适应性能}
+    \label{fig:nn_identifier_performance}
+\end{figure}
+
+发现在经过前期一段时间的在线自适应后，辨识误差迅速降低并稳定在$2\times10^{-3}$的极小范围内，表现出优异的辨识能力。
+
+接下来我将附上我的神经网络估计法的神经网络控制器核心代码：
+\begin{lstlisting}
+function u = fcn_Controller(yr, y, J_est_in)
+
+persistent Wc1 Wc2 y_prev is_init
+
+% --- 参数设置 ---
+xite_c = 0.0001; 
+alpha_c = 0.00;
+
+if isempty(is_init)
+    Wc1 = [  2.8620, -0.04419;
+             0.8460, -0.009854;
+            -1.1170,  0.04621;
+            -1.0690,  0.04619;
+            -1.0230, -0.03447;
+            -0.9713,  0.04703 ]; 
+           
+    Wc2 = [ 3.853, 0.646, -1.196, -1.149, -1.102, -1.05 ];
+    
+    y_prev = 0;
+    is_init = 1;
+end
+
+% 1. 安全底线 (处理 J_est)
+if J_est_in < 0.001
+    J_active = 0.001;
+else
+    J_active = J_est_in;
+end
+
+% 2. 构造输入
+e = yr - y;
+e_delta = e - (yr - y_prev);
+xi_c = [e; e_delta];
+
+% 3. 前向计算 (算出 u)
+net_c1 = Wc1 * xi_c;
+Hc = 1 ./ (1 + exp(-net_c1));
+u_raw = Wc2 * Hc;
+
+% 限幅
+if u_raw > 0.5; u = 0.5;
+elseif u_raw < -0.5; u = -0.5;
+else; u = u_raw; end
+
+% 4. 反向传播 (更新控制器)
+delta3_c = e * J_active; 
+
+dWc2 = xite_c * delta3_c * Hc';
+Wc2 = Wc2 + dWc2 + alpha_c * dWc2;
+
+d_sigma_c = Hc .* (1 - Hc) + 0.05;
+delta2_c = (Wc2' * delta3_c) .* d_sigma_c;
+dWc1 = xite_c * delta2_c * xi_c';
+Wc1 = Wc1 + dWc1 + alpha_c * dWc1;
+
+% 5. 更新历史
+y_prev = y;
+
+end
+\end{lstlisting}
+
+\paragraph{代码详解与工程思考:}
+控制器的基本思路大致与符号近似法类似，我在初始化部分同样采用了预训练权值加载的方式，以提升初始控制性能。
+但在反向传播阶段引入了从辨识器模块传递过来的 Jacobian 估计值 \texttt{J\_est\_in}。
+为了防止极端情况下辨识器输出过小的 Jacobian 导致控制器“失活”，我在代码中设置了一个安全底线：
+\begin{lstlisting}
+if J_est_in < 0.001
+    J_active = 0.001;
+else
+    J_active = J_est_in;
+end
+\end{lstlisting} 
+这确保了无论辨识器输出如何，控制器始终能够获得一个合理的梯度幅值进行权值更新。
+
+最终神经网络估计法的神经网络直接控制器的仿真结果如下图所示：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figure/direct_control_nnresult.png}
+    \caption{神经网络估计法的神经网络直接控制系统仿真结果}
+    \label{fig:direct_nn_res}
+\end{figure}
+
+\subsubsection{两种方法的性能对比分析}
+
+对比符号近似法，可以明显观察到,神经网络估计法在控制性能上有显著提升，具体体现在以下几个方面：
+\begin{itemize}
+    \item 超调与振荡减少：波峰波谷处的超调现象明显减小，系统响应更加平滑稳定。
+    \item 收敛速度加快：系统达到稳态的时间缩短，控制器能够更快地适应动态变化。
+\end{itemize}
+不过在跟踪精度方面，符号似然法和神经网络估计法的稳态误差均在$10^{-3}$数量级，跟踪曲线与参考信号几乎重合，表现都很优异，提升效果不大。
+
+综上种种，验证了引入高精度 Jacobian 信息对提升非线性自适应控制性能的关键作用。
+
+
+
+
+\section{任务三:神经网络 PID 控制系统设计}
+
+\subsection{控制系统结构设计}
+
+传统的 PID 控制器参数固定，这就导致当情况不同时，控制器仍在以相同的参数工作，会导致控制效果大打折扣，也就是说，
+传统PID难以适应 USV 在复杂海况下的非线性与时变特性。为此，本环节设计了基于 BP 神经网络的自适应 PID 控制系统（BP-PID）。
+
+\subsubsection{系统结构框图}
+该控制系统主要由两部分组成：
+\begin{enumerate}
+    \item 常规 PID 控制器：直接对 USV 进行闭环控制，采用增量式 PID 算法，其参数 $K_p, K_i, K_d$ 由神经网络实时调整。
+    \item BP 神经网络：作为一个参数整定器，根据系统的运行状态（误差及其变化率），通过自学习找出当前时刻最优的 PID 参数组合。
+\end{enumerate}
+
+系统结构如图所示。
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[auto, node distance=2cm,>=latex',
+        block/.style = {draw, rectangle, minimum height=1.2cm, minimum width=2.5cm, align=center, fill=blue!5},
+        nnblock/.style = {draw, rectangle, minimum height=1.8cm, minimum width=3.0cm, align=center, fill=green!10, rounded corners},
+        sum/.style = {draw, circle, inner sep=2pt, node distance=1.5cm},
+        input/.style = {coordinate},
+        output/.style = {coordinate}
+    ]
+
+        % 1. 定义节点
+        \node [input] (input) {};
+        \node [sum, right of=input] (sum) {};
+        \node [block, right of=sum, node distance=3.5cm] (pid) {\textbf{PID 控制器}\\(增量式)};
+        \node [block, right of=pid, node distance=4cm] (plant) {\textbf{被控对象}\\\textbf{(USV)}};
+        \node [output, right of=plant, node distance=2.5cm] (out) {};
+        
+        % BP 神经网络 (放在上方)
+        \node [nnblock, above of=pid, node distance=2.5cm] (bp) {\textbf{BP 神经网络}\\(参数自整定)};
+
+        % 2. 信号流连线
+        \draw [->, thick] (input) -- node {$y_r$} (sum);
+        \draw [->, thick] (sum) -- node {$e$} (pid);
+        \draw [->, thick] (pid) -- node [name=u] {$u$} (plant);
+        \draw [->, thick] (plant) -- node [name=y] {$y$} (out);
+        
+        % 反馈
+        \draw [->, thick] ($(plant.east)+(1.5cm,0)$) |- (0,-4) -| (sum);
+        
+        % 3. 神经网络连接
+        % 输入到 NN
+        \draw [->, dashed] (0.8, 0) |- (bp.west) node [pos=0.2, left] {状态输入 $x$};
+        % NN 输出参数到 PID
+        \draw [->, thick, blue] (bp.south) -- node [right] {$K_p, K_i, K_d$} (pid.north);
+        
+        % 4. 误差反向传播 (学习通路)
+        \draw [->, dashed, red] (sum.north) |- node [pos=0.7, above] {误差 $e$ (用于梯度计算)} (bp.160);
+
+        % 比较器符号
+        \node at (sum.north west) [xshift=-2pt, yshift=2pt] {$+$};
+        \node at (sum.south) [yshift=-5pt, xshift=-5pt] {$-$};
+
+    \end{tikzpicture}
+    \caption{BP 神经网络自适应 PID 控制系统结构框图}
+    \label{fig:bp_pid_structure}
+\end{figure}
+
+\subsection{PID 控制算法与权值更新律推导}
+
+\subsubsection{增量式 PID 控制算法}
+为了便于计算机实现及与神经网络结合，采用增量式 PID 算法。控制律定义如下：
+\begin{equation}
+    \begin{aligned}
+    u(k) &= u(k-1) + \Delta u(k) \\
+         &= u(k-1) + K_p [e(k) - e(k-1)] + K_i e(k) + K_d [e(k) - 2e(k-1) + e(k-2)]
+    \end{aligned}
+    \label{eq:inc_pid}
+\end{equation}
+其中，$K_p, K_i, K_d$ 分别为神经网络输出层神经元的输出。
+
+\subsubsection{神经网络权值更新律推导}
+定义性能指标函数为 $E(k) = \frac{1}{2} e(k)^2 = \frac{1}{2} (y_r(k) - y(k))^2$。
+根据梯度下降法，需调整网络权值 $w$ 以最小化 $E(k)$。
+
+利用链式法则展开权值梯度的偏导数：
+\begin{equation}
+    \frac{\partial E(k)}{\partial w} = \frac{\partial E(k)}{\partial y(k)} \cdot \frac{\partial y(k)}{\partial u(k)} \cdot \frac{\partial u(k)}{\partial K} \cdot \frac{\partial K}{\partial w}
+\end{equation}
+
+各项的具体含义与计算方法如下：
+
+\begin{enumerate}
+    \item 误差项：
+    \begin{equation}
+        \frac{\partial E(k)}{\partial y(k)} = -(y_r(k) - y(k)) = -e(k)
+    \end{equation}
+    
+    \item 对象 Jacobian 信息：
+    $\frac{\partial y(k)}{\partial u(k)}$ 反映了被控对象的灵敏度。同 Task 2，此处既可以使用符号近似 $\text{sgn}(\frac{\partial y}{\partial u})$，也可以利用 Task 1 训练好的辨识器模型进行精确估计。
+    
+    \item PID 梯度项：
+    根据公式，控制量 $u(k)$ 对 PID 参数的偏导数为：
+    \begin{equation}
+        \begin{cases}
+            \frac{\partial u(k)}{\partial K_p} = e(k) - e(k-1) \\
+            \frac{\partial u(k)}{\partial K_i} = e(k) \\
+            \frac{\partial u(k)}{\partial K_d} = e(k) - 2e(k-1) + e(k-2)
+        \end{cases}
+    \end{equation}
+    
+    \item 网络内部梯度：
+    $\frac{\partial K}{\partial w}$ 取决于神经网络的激活函数及其导数。
+\end{enumerate}
+
+在权值更新律中，项 $\frac{\partial K}{\partial w}$ 反映了神经网络内部参数的变化如何传递到输出端（PID 参数）。这一项的计算完全取决于所选用的激活函数及其导数性质。基于代码实现，具体推导如下：
+\paragraph{1. 输出层梯度 (Sigmoid 函数与物理缩放)}
+输出层神经元采用 Sigmoid 函数将加权和 $net^{(3)}$ 映射到 $(0, 1)$ 区间，并通过增益系数 $S$（即代码中的 \texttt{Scale\_Factors}）恢复物理量纲。
+输出关系定义为：
+\begin{equation}
+    K_l = S_l \cdot \sigma(net_l^{(3)}) = S_l \cdot \frac{1}{1 + e^{-net_l^{(3)}}}
+\end{equation}
+其中 $l=0,1,2$ 分别对应 $K_p, K_i, K_d$。
+
+对权值 $w^{(3)}$ 求偏导，利用 Sigmoid 函数的导数性质 $\sigma'(x) = \sigma(x)(1-\sigma(x))$：
+\begin{equation}
+    \begin{aligned}
+    \frac{\partial K_l}{\partial net_l^{(3)}} &= S_l \cdot \frac{\partial \sigma(net_l^{(3)})}{\partial net_l^{(3)}} \\
+    &= S_l \cdot \sigma(net_l^{(3)}) \cdot \left( 1 - \sigma(net_l^{(3)}) \right) \\
+    &= \underbrace{K_l}_{\text{当前值}} \cdot \underbrace{\left( 1 - \frac{K_l}{S_l} \right)}_{\text{Sigmoid 导数项}}
+    \end{aligned}
+\end{equation}
+
+\textbf{代码对应关系：}
+该推导严格对应了代码中的输出层梯度计算行：
+\begin{lstlisting}
+d_g = K_raw .* (1.0 - Sigmoid_Out); 
+\end{lstlisting}
+这一处理巧妙地利用了函数值本身来计算导数，避免了复杂的指数运算。
+
+\paragraph{2. 隐含层梯度 (Tanh 函数)}
+隐含层神经元采用双曲正切函数 (Tanh) 以捕捉误差信号的正负非线性特征。
+输出关系定义为：
+\begin{equation}
+    H_i = \tanh(net_i^{(2)}) = \frac{e^{net_i^{(2)}} - e^{-net_i^{(2)}}}{e^{net_i^{(2)}} + e^{-net_i^{(2)}}}
+\end{equation}
+
+其导数具有优良的解析性质 $\tanh'(x) = 1 - \tanh^2(x)$。因此，隐含层输出对输入的灵敏度为：
+\begin{equation}
+    \frac{\partial H_i}{\partial net_i^{(2)}} = 1 - H_i^2
+\end{equation}
+
+\textbf{代码对应关系：}
+该推导对应了代码中隐层误差反传的关键一行：
+\begin{lstlisting}
+d_sigma = (1 - H.^2); % Tanh 导数
+\end{lstlisting}
+
+\paragraph{3. 权值更新的链式汇总}
+综合上述导数，根据链式法则，完整的权值梯度计算如下：
+
+对于输出层权值 $w_{li}^{(3)}$（连接隐层节点 $i$ 到输出节点 $l$）：
+\begin{equation}
+    \frac{\partial E}{\partial w_{li}^{(3)}} = \delta_l^{(3)} \cdot H_i 
+    \quad \text{其中} \quad 
+    \delta_l^{(3)} = e(k) \cdot \frac{\partial y}{\partial u} \cdot \frac{\partial u}{\partial K_l} \cdot \underbrace{K_l (1 - \sigma_l)}_{\text{激活函数导数}}
+\end{equation}
+
+对于隐层权值 $w_{ij}^{(2)}$（连接输入节点 $j$ 到隐层节点 $i$）：
+\begin{equation}
+    \frac{\partial E}{\partial w_{ij}^{(2)}} = \delta_i^{(2)} \cdot x_j 
+    \quad \text{其中} \quad 
+    \delta_i^{(2)} = \underbrace{(1 - H_i^2)}_{\text{激活函数导数}} \cdot \sum_{l} \left( \delta_l^{(3)} \cdot w_{li}^{(3)} \right)
+\end{equation}
+
+\textbf{最终权值更新律：}
+综合上述各项，得到神经网络输出层权值的在线调整公式：
+\begin{equation}
+    \Delta w(k) = \eta \cdot e(k) \cdot \underbrace{\frac{\partial y}{\partial u}}_{\text{Jacobian}} \cdot \underbrace{\frac{\partial u}{\partial K}}_{\text{PID Input}} \cdot \underbrace{\frac{\partial K}{\partial w}}_{\text{NN Grad}}
+\end{equation}
+通过该更新律，神经网络能够根据当前的误差趋势，自动增强或减弱 PID 的比例、积分、微分作用，从而实现最优控制。
+整体系统结构如图所示。
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figure/BP-PID.png} 
+    \caption{BP-PID控制系统 Simulink 模型}
+    \label{fig:bp_pid_system}
+\end{figure}
+
+\subsubsection{系统工作原理}
+该控制系统采用了典型的间接自适应控制架构：
+\begin{enumerate}
+    \item 前向控制通路：BP-PID 控制器根据当前的误差状态 $e(k)$，实时计算 PID 参数 $K_p, K_i, K_d$，并输出控制量 $u(k)$ 驱动 USV。
+    \item 并行辨识通路：NN Identifier 与 USV 并联，实时接收输入 $u(k)$ 和输出 $y(k)$。辨识器在线微调权值以逼近系统动态，并计算关键的系统灵敏度信息（Jacobian 信息 $\hat{J} = \frac{\partial \hat{y}}{\partial u}$）。
+    \item 信息耦合：辨识器计算出的 Jacobian 信息 $J_{est}$ 被实时传输给 BP-PID 控制器。控制器利用该梯度信息修正权值更新的方向和步长，实现了“基于模型”的参数自整定。
+\end{enumerate}
+
+\subsection{核心模块代码实现与分析}
+
+\subsubsection{神经网络辨识器 (NN Identifier)}
+
+我的NN\_Identifier代码与任务二中的在线辨识器相同，故不再赘述。
+
+\subsubsection{BP-PID 控制器 (BP-PID Controller)}
+控制器采用 3-5-3 网络结构，核心在于如何利用辨识器传来的 $J_{est}$ 进行权值更新。
+其详细代码如下：
+\begin{lstlisting}
+function [u, K_out] = fcn_BP_PID(yr, y, J_est)
+
+persistent W1 W2 W1_prev W2_prev u_prev y_prev e_prev e_pprev is_init
+
+% --- 1. 超参数设置 ---
+xite_k = 0.001; 
+alpha  = 0.0; % 动量因子
+
+% --- 2. 初始化 (关键！) ---
+if isempty(is_init)
+    
+    W1 = rand(5, 3) * 0.1; 
+    W2 = rand(3, 5) * 0.1;
+    
+    W1_prev = W1;
+    W2_prev = W2;
+    
+    % 历史状态初始化
+    u_prev = 0;
+    y_prev = 0;
+    e_prev = 0;
+    e_pprev = 0;
+    
+    is_init = 1;
+end
+
+% --- 3. 构造 PID 的输入向量 (xc) ---
+e = yr - y;                % 当前误差
+e_delta = e - e_prev;      % 误差变化
+e_ddelta = e - 2*e_prev + e_pprev; % 误差变化的加速度
+
+% 输入向量 (3x1)
+xc = [e; e_delta; e_ddelta];
+
+% --- 4. 神经网络前向计算 ---
+% >> 隐层计算 (使用 tanh 激活函数)
+net1 = W1 * xc;
+H = tanh(net1); 
+
+% >> 输出层计算 (使用 Sigmoid 变体，保证 K > 0)
+net2 = W2 * H;
+% Sigmoid 函数: 把输出压缩到 (0, 1)
+Sigmoid_Out = exp(net2) ./ (exp(net2) + 1);
+
+
+% 分别设置 PID 幅值上限 (消灭高频震荡)
+% 定义缩放因子向量 [Kp上限; Ki上限; Kd上限]
+Scale_Factors = [50; 0.2; 15]; 
+
+K_raw = Sigmoid_Out .* Scale_Factors;
+
+Kp = K_raw(1);
+Ki = K_raw(2);
+Kd = K_raw(3);
+
+% --- 5. 执行增量式 PID 控制 ---
+
+du = Kp * (e - e_prev) + Ki * e + Kd * (e - 2*e_prev + e_pprev);
+
+% 算出当前控制量
+u_raw = u_prev + du;
+
+% 限幅 (物理约束)
+if u_raw > 0.5; u = 0.5;
+elseif u_raw < -0.5; u = -0.5;
+else; u = u_raw; end
+
+% --- 6. 在线反向传播 (更新权值) ---
+% 处理 Jacobian (J_est)
+if J_est < 0.001
+    J_active = 0.001; % 防止除以0或过小
+    sgn_J = 1;        % 默认正方向
+else
+    J_active = J_est;
+    sgn_J = sign(J_est); 
+end
+
+% 计算误差梯度项 (delta3)
+delta_common = e * J_active; 
+
+% 计算 du 对 K 的偏导数 (对应 PID 三项)
+du_dK = [ (e - e_prev);  e;  (e - 2*e_prev + e_pprev) ];
+
+% 输出层梯度 (dK)
+d_g = K_raw .* (1.0 - K_raw); % Sigmoid 导数项近似
+
+% 综合梯度 delta3 (3x1向量，对应 Kp, Ki, Kd)
+delta3 = delta_common * du_dK .* d_g;
+
+% >> 更新输出层权值 W2
+dW2 = xite_k * delta3 * H';
+W2_new = W2 + dW2 + alpha * (W2 - W2_prev);
+
+% >> 更新隐层权值 W1
+d_sigma = (1 - H.^2);
+delta2 = (W2' * delta3) .* d_sigma;
+
+dW1 = xite_k * delta2 * xc';
+W1_new = W1 + dW1 + alpha * (W1 - W1_prev);
+
+% 更新权值历史
+W2_prev = W2; W2 = W2_new;
+W1_prev = W1; W1 = W1_new;
+
+% --- 7. 更新历史状态 ---
+u_prev = u;
+e_pprev = e_prev;
+e_prev = e;
+y_prev = y;
+
+% 输出 K 值供观察
+K_out = [Kp; Ki; Kd];
+
+end
+\end{lstlisting}
+
+
+\subsubsection{代码核心逻辑详细解析}
+
+\paragraph{1. 输入向量构造与网络初始化}
+
+\begin{lstlisting}
+% --- 3. 构造 PID 的输入向量 (xc) ---
+e = yr - y;                % 误差
+e_delta = e - e_prev;      % 误差变化率
+e_ddelta = e - 2*e_prev + e_pprev; % 误差加速度
+xc = [e; e_delta; e_ddelta];
+\end{lstlisting}
+\begin{itemize}
+    \item 状态感知：输入层选取了误差 $e$、误差一阶差分 $\Delta e$ 和二阶差分 $\Delta^2 e$。这与 PID 控制律的三个分量（比例、积分、微分）在物理意义上是一一对应的，确保了神经网络能够感知系统的过去、当前和未来。
+    \item 初始化策略：我不再在这里使用预处理的操作，而是采用了随机初始化（\texttt{rand}）。这是因为 PID 参数的最优值随工况变化较大，且很难预知一个通用的初始 $K$ 值。随机初始化赋予了网络在参数空间内自由搜索的能力。
+\end{itemize}
+
+\paragraph{2. 前向传播与参数空间的物理映射}
+
+\begin{lstlisting}
+% >> 输出层计算
+net2 = W2 * H;
+Sigmoid_Out = exp(net2) ./ (exp(net2) + 1); % 归一化到 (0, 1)
+% 定义缩放因子向量 [Kp上限; Ki上限; Kd上限]
+Scale_Factors = [50; 0.2; 15]; 
+K_raw = Sigmoid_Out .* Scale_Factors;
+\end{lstlisting}
+
+神经网络的标准输出通常在 $[0, 1]$ 或 $[-1, 1]$ 之间，直接作为 PID 参数显然不符合物理实际。因此，代码引入了 \texttt{Scale\_Factors} 进行物理量纲恢复：
+\begin{equation}
+    K_{PID} = \text{Scale} \cdot \sigma(net)
+\end{equation}
+这一设计实现了两个目的：
+\begin{enumerate}
+    \item 非负约束：利用 Sigmoid 函数的特性，天然保证了 $K_p, K_i, K_d \geq 0$，满足控制稳定性的基本要求。
+    \item 搜索空间限制：通过设定上限（如 $K_p \le 50$），防止了网络在初期训练时因权值发散导致参数过大，从而引发系统剧烈震荡。
+\end{enumerate}
+
+\paragraph{3. 基于辨识信息的梯度计算}
+这是本算法与传统 BP-PID（通常使用符号函数近似 Jacobian）最大的不同点：
+\begin{lstlisting}
+% 处理 Jacobian (J_est)
+if J_est < 0.001
+    J_active = 0.001; % 鲁棒性保护
+else
+    J_active = J_est;
+end
+% 计算误差梯度项 (delta3)
+delta_common = e * J_active; 
+\end{lstlisting}
+
+代码引入了辨识器计算出的 $J_{est}$（即 $\frac{\partial y}{\partial u}$）。
+不过具体原因已在前文分析，也不再赘述。
+
+\paragraph{4. 权值在线更新律}
+
+\begin{lstlisting}
+% 计算 du 对 K 的偏导数 (对应 PID 三项)
+du_dK = [ (e - e_prev);  e;  (e - 2*e_prev + e_pprev) ];
+% 输出层梯度 (dK)
+d_g = K_raw .* (1.0 - K_raw); % 激活函数导数修正
+% 综合梯度 delta3
+delta3 = delta_common * du_dK .* d_g;
+\end{lstlisting}
+
+这段代码严格实现了链式法则 $\frac{\partial E}{\partial w} = \frac{\partial E}{\partial y} \frac{\partial y}{\partial u} \frac{\partial u}{\partial K} \frac{\partial K}{\partial w}$：
+\begin{itemize}
+    \item \texttt{delta\_common} 对应 $\frac{\partial E}{\partial y} \frac{\partial y}{\partial u} = e \cdot J$。
+    \item \texttt{du\_dK} 对应 PID 算法本身对参数的偏导 $\frac{\partial u}{\partial K}$。
+    \item \texttt{d\_g} 对应激活函数的导数项 $\frac{\partial K}{\partial net}$。
+\end{itemize}
+通过这一系列计算，将最终的性能指标误差 $E$ 反向传播回网络权值 $W1, W2$，实现了控制参数的闭环在线优化。
+
+\paragraph{5. 其他工程处理}
+关于物理限幅与动量项的处理逻辑，与任务二中采用的方法完全一致，此处不再赘述。
+
+
+\subsection{仿真结果与性能分析}
+
+首先，PID三个参数的在线变化曲线如下所示：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figure/PID_results.jpg}
+    \caption{BP-PID 控制器参数在线调整曲线}
+    \label{fig:bp_pid_k_values}
+\end{figure}
+
+可以看到，PID 参数在系统运行过程中不断调整，以适应不同的动态需求，后续则因为误差较小而趋于稳定。
+
+系统仿真结果与误差曲线如下所示：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figure/BP_PID_results.png}
+    \caption{BP-PID 控制系统仿真结果与误差曲线}
+    \label{fig:bp_pid_results}
+\end{figure}    
+
+从图像中看出，系统在初始阶段存在一定的超调与振荡，但整体收敛速度较快，稳态误差控制在 $10^{-4}$ 量级，表现出很好的跟踪性能。
+
+
+该系统成功构建了一个“辨识-控制”相互增强的自适应架构，既保留了 PID 控制结构简单、鲁棒性强的优点，
+又赋予了系统处理非线性、时变特性的能力，误差极小，表现出色。
+
+
+
+\section{附加题：RBF神经网络自适应控制}
+
+\subsection{问题描述与控制目标}
+借鉴模糊自适应控制的设计思想，利用 RBF 神经网络的“万能逼近”特性，设计一种自适应控制器。
+目标是针对具有未知非线性动态的 USV 模型，通过在线学习抵消非线性干扰，实现对参考轨迹 $y_r$ 的精确跟踪。
+
+USV 的二阶仿射非线性动力学模型描述为：
+\begin{equation}
+    \ddot{y} = f(y, \dot{y}) + g \cdot u
+\end{equation}
+其中，$f(y, \dot{y})$ 为未知的非线性函数（包含水动力阻力等），$g$ 为已知的控制增益。
+具体的推论过程我已在上一次模糊控制作业汇报中完成，故这里不再赘述。
+
+\subsection{RBF 神经网络结构设计}
+采用径向基函数（RBF）神经网络来逼近未知的 $f(x)$ 。RBF 网络是一种三层前向网络，其映射关系可表示为：
+\begin{equation}
+    f(x) = W^{*T} h(x) + \varepsilon
+\end{equation}
+其中：
+\begin{itemize}
+    \item $x = [\dot{y}]^T$ 为网络输入向量（根据物理特性，阻力主要与速度相关）。
+    \item $W^*$ 为理想权值向量。
+    \item $h(x) = [h_1, h_2, \dots, h_m]^T$ 为高斯基函数向量，第 $j$ 个节点的输出定义为 [cite: 116]：
+    \begin{equation}
+        h_j(x) = \exp \left( -\frac{\|x - c_j\|^2}{2b_j^2} \right)
+    \end{equation}
+    \item $\varepsilon$ 为网络逼近误差。
+\end{itemize}
+
+在实际控制中，我使用估计权值 $\hat{W}$ 代替理想权值，则非线性项的估计值为 $\hat{f}(x) = \hat{W}^T h(x)$。
+
+\subsection{控制器设计与稳定性证明}
+
+\subsubsection{控制律设计}
+定义跟踪误差 $e = y_r - y$。为了保证系统的渐近稳定性，设计滑模面函数：
+\begin{equation}
+    s = \dot{e} + \lambda e, \quad \lambda > 0
+\end{equation}
+
+对 $s$ 求导，并代入系统方程：
+\begin{equation}
+    \dot{s} = \ddot{e} + \lambda \dot{e} = (\ddot{y}_r - \ddot{y}) + \lambda \dot{e} = \ddot{y}_r - (f + g u) + \lambda \dot{e}
+\end{equation}
+
+为了消除非线性项 $f$ 并使误差收敛，设计包含 RBF 补偿的控制律：
+\begin{equation}
+    u = \frac{1}{g} \left( -\hat{f}(x) + \ddot{y}_r + K_d \dot{e} + K_p e \right)
+\end{equation}
+该控制律包含两部分：
+1. 非线性补偿项 $-\hat{f}(x)$：利用 RBF 网络抵消未知的模型动态。
+2. PD 反馈项 $K_d \dot{e} + K_p e$：保证闭环系统的动态稳定性。
+
+\subsubsection{自适应律推导 (Lyapunov 方法)}
+定义 Lyapunov 函数 $V$ 为：
+\begin{equation}
+    V = \frac{1}{2} s^2 + \frac{1}{2\gamma} \tilde{W}^T \tilde{W}
+\end{equation}
+其中 $\gamma > 0$ 为自适应学习率，$\tilde{W} = W^* - \hat{W}$ 为权值误差。
+
+对 $V$ 求导，推导可得权值自适应更新律：
+\begin{equation}
+    \dot{\hat{W}} = -\gamma \cdot s \cdot h(x)
+\end{equation}
+在离散仿真中，该更新律采用欧拉法实现：$W(k+1) = W(k) - \gamma \cdot s(k) \cdot h(k) \cdot \Delta t$。
+
+整体的仿真模型结构如图所示。
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure/RBF-Adaptive.png}
+    \caption{RBF 自适应控制系统 Simulink 模型}
+    \label{fig:rbf_adaptive_structure}
+\end{figure}
+
+\subsection{核心代码实现与分析}
+
+\subsubsection{核心代码实现}
+
+RBF 自适应控制器的核心代码实现如下：
+\begin{lstlisting}
+function [u, f_hat, yr, err] = fcn_RBF_Adaptive(t, y, dy)
+
+persistent W c b is_init
+
+% 1. 内置参考信号生成 
+A = 0.2;        
+w = 0.1;       
+
+yr   = A * sin(w * t);
+dyr  = A * w * cos(w * t);
+ddyr = -A * w^2 * sin(w * t);
+
+% 2. 参数设置
+g = 0.4;       % 物理参数 K/T
+gamma = 20.0;  % 自适应学习率 
+lambda = 1.0;  % 滑模面参数
+Kp = 10.0;     % PD 参数 P
+Kd = 5.0;      % PD 参数 D
+
+% RBF 网络结构
+node_num = 7; 
+
+if isempty(is_init)
+    % 权值初始化
+    W = zeros(node_num, 1);
+    
+    % 中心初始化 (覆盖角速度 dy 的范围 [-1, 1])
+    c = linspace(-1, 1, node_num); 
+    
+    % 宽度初始化
+    b = 0.5 * ones(node_num, 1);
+    
+    is_init = 1;
+end
+
+% 3. 计算误差与状态
+e = yr - y;
+de = dyr - dy;
+
+% 综合误差变量 s
+s = de + lambda * e;
+
+% 输出误差供示波器观察 (Export)
+err = e;
+
+% 4. RBF 网络前向计算
+x_in = dy; % 输入为角速度
+
+h = zeros(node_num, 1);
+for j = 1:node_num
+    h(j) = exp( - (x_in - c(j))^2 / (2 * b(j)^2) );
+end
+
+% 网络输出 (对非线性项的估计)
+f_hat = W' * h;
+
+% 5. 计算控制律 u
+u_raw = (1/g) * ( -f_hat + ddyr + Kd*de + Kp*e );
+
+% 限幅保护
+if u_raw > 0.5; u = 0.5;
+elseif u_raw < -0.5; u = -0.5;
+else; u = u_raw; end
+
+% 6. 自适应律 
+
+ dW = -gamma * s * h;
+
+% 离散更新
+dt = 0.05; 
+W = W + dW * dt;
+
+end
+\end{lstlisting}
+
+
+\subsubsection{代码核心逻辑详细解析}
+
+关于输入信号，我原本是在模块外部采用外置的正弦信号发生器生成参考轨迹 $y_r$，但是我在调试过程中发现，
+在模块外部引入的过多的delay模块使得波形受影响很大以至于发散，因此我将参考信号的生成内置在了函数内部，
+在内部直接计算正弦参考信号及其一阶、二阶导数，以保证参考信号的准确性和实时性，并在模块外加设clock模块以提供时间变量 $t$。
+
+至于自适应学习参数部分，则参考我在模糊自适应调节过程中得到的数据（如g和gamma等），发现后续实验效果较好，故沿用。
+
+\paragraph{1. 内置参考信号与滑模面定义}
+\begin{lstlisting}
+% --- 3. 计算误差与状态 ---
+e = yr - y;
+de = dyr - dy;
+% 综合误差变量 s (滑模面)
+s = de + lambda * e;
+\end{lstlisting}
+
+为了导出稳定的自适应律，代码首先定义了滑模变量 $s = \dot{e} + \lambda e$。
+\begin{itemize}
+    \item 物理意义：$s$ 将跟踪误差 $e$ 及其变化率 $\dot{e}$ 融合为一个标量信号。控制的目标不仅仅是让 $e \to 0$，而是让系统状态被吸引并保持在滑模面 $s=0$ 上。一旦 $s \to 0$，根据微分方程定义，误差 $e$ 必然指数收敛至零。
+    \item 在自适应律中的作用：变量 $s$ 后续直接作为神经网络权值更新的驱动信号，保证了权值是沿着“减小滑模面距离”的方向调整的。
+\end{itemize}
+
+\paragraph{2. RBF 网络结构与前向计算}
+\begin{lstlisting}
+% --- 4. RBF 网络前向计算 ---
+x_in = dy; % 输入为角速度
+h = zeros(node_num, 1);
+for j = 1:node_num
+    h(j) = exp( - (x_in - c(j))^2 / (2 * b(j)^2) );
+end
+f_hat = W' * h; % 网络输出 (对非线性项的估计)
+\end{lstlisting}
+
+\begin{itemize}
+    \item 输入选择 ($x_{in} = dy$)：代码选取角速度 $dy$ 作为网络的输入。这是基于物理先验知识：USV 受到的水动力阻尼和非线性干扰主要与运动速度有关。
+    \item 高斯基函数：采用径向基函数作为激活函数。通过 \texttt{linspace} 将中心点 $c$ 均匀分布在 $[-1, 1]$ 区间，覆盖了 USV 可能的角速度范围，保证了网络在工作空间内的局部逼近能力。
+    \item 零初始权值：代码中 \texttt{W = zeros}。这表明控制器完全不依赖离线训练，具备从“一无所知”开始在线学习并控制系统的能力。
+\end{itemize}
+
+\paragraph{3. 基于补偿的控制律设计}
+\begin{lstlisting}
+% --- 5. 计算控制律 u ---
+% u = (1/g) * ( -f_hat + v )
+u_raw = (1/g) * ( -f_hat + ddyr + Kd*de + Kp*e );
+\end{lstlisting}
+
+该行代码实现了反馈线性化控制律：
+\begin{equation}
+    u = \frac{1}{g} \left( -\hat{f}(x) + \ddot{y}_r + K_d \dot{e} + K_p e \right)
+\end{equation}
+\begin{itemize}
+    \item 消除非线性：项 $-\hat{f}$（即代码中的 \texttt{-f\_hat}）用于抵消系统真实的非线性动态 $f$。如果估计准确（$\hat{f} \approx f$），非线性项将被完全消除。
+    \item 线性跟踪：剩余项 $\ddot{y}_r + K_d \dot{e} + K_p e$ 构成了一个标准的 PD 跟踪控制器，用于保证线性化后的系统稳定跟踪参考轨迹。
+\end{itemize}
+
+\paragraph{4. 权值自适应律 (核心算法)}
+\begin{lstlisting}
+% --- 6. 自适应律 ---
+dW = -gamma * s * h;
+% 离散更新
+W = W + dW * dt;
+\end{lstlisting}
+
+我的权值自适应率直接源于 Lyapunov 函数 $V = \frac{1}{2}s^2 + \frac{1}{2\gamma}\tilde{W}^T\tilde{W}$ 的稳定性分析。
+为了保证 $\dot{V} \le 0$，数学推导得出的连续时间更新律为：
+\begin{equation}
+    \dot{\hat{W}} = -\gamma \cdot s \cdot h(x)
+\end{equation}
+代码通过 \texttt{dW = -gamma * s * h} 精确实现了这一公式。
+\begin{itemize}
+    \item 负号：确保能量函数 $V$ 单调递减，即系统是稳定的。
+    \item 相关项：权值更新速度取决于滑模误差 $s$（误差越大更新越快）和基函数输出 $h$（只有被激活的神经元才更新权值，体现了 RBF 的局部学习特性）。
+\end{itemize}
+
+\subsubsection{f\_hat 分析}
+该代码构建了一个严谨的自适应控制闭环。与任务二和任务三的启发式 BP 算法不同，本环节的 RBF 自适应律具有严格的数学稳定性证明。
+仿真中 \texttt{f\_hat} 的有效震荡和误差的收敛，完美验证了该算法在处理模型不确定性方面的强大能力。我在此附上我的f\_hat的变化曲线截图如下：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figure/fhat.png}
+    \caption{f\_hat变化曲线}
+    \label{fig:f_hat}
+\end{figure}
+
+非线性逼近能力分析 ($\hat{f}$)：
+如图所示，$\hat{f}$ 的变化曲线呈现出清晰的物理特征：
+\begin{itemize}
+    \item 微幅震荡：由于本次仿真中 USV 运动速度较慢（正弦幅值 0.2, 频率 0.1），其受到的实际水动力阻力 $f(y, \dot{y})$ 本身非常微弱。RBF 网络输出的 $\hat{f}$ 保持在 $10^{-1}$ 量级，准确反映了“低速低阻尼”的物理事实，证明网络没有出现过拟合。
+    \item 相位同步：$\hat{f}$ 的震荡周期与 USV 的运动周期严格同步，这表明网络成功捕捉到了与速度方向相关的阻尼特性，通过自适应律实时补偿了系统动力学。
+\end{itemize}
+
+可以发现，f\_hat成功捕捉到了非线性项的动态变化特征，验证了RBF网络的在线学习能力。
+
+
+\subsubsection{仿真结果分析}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figure/RBF_results.png}
+    \caption{RBF 网络模型仿真结果}
+    \label{fig:f_hat_estimation}
+\end{figure}
+
+跟踪误差分析：
+在 RBF 网络的辅助下，系统的稳态跟踪误差收敛至极小范围，到达了惊人的$10^{-5}$ 量级。RBF 网络负责抵消模型的不确定性，将复杂的非线性系统“线性化”，从而使 PD 控制器能够轻松实现高精度的轨迹跟踪。
+
+\section{心得体会}
+本次作业让我深刻体会到神经网络在控制系统中的强大潜力。通过合理设计网络结构和自适应律，神经网络能够在线学习并补偿复杂的非线性动态，大幅提升系统的跟踪性能和鲁棒性。
+我自身对于神经网络的学习方面还不够擅长，在本次作业中遇到了不少困难，但通过反复地学习理论知识理解神经网络的根本工作原理，同时借助AI等工具的辅助，最终完成了作业任务，收获颇丰。
+
+
+
+\end{document}
