@@ -1,0 +1,157 @@
+{
+  "args": {
+    "xml": "phy3.02_head_hit.xml",
+    "timesteps": 100000,
+    "n_envs": 8,
+    "progress": 0.0,
+    "save": "checkpoints/head_hit_v1_100k",
+    "device": "cpu",
+    "eval_freq": 10000,
+    "n_eval_episodes": 32,
+    "learning_rate": 0.0003,
+    "n_steps": 256,
+    "batch_size": 128,
+    "n_epochs": 10,
+    "ent_coef": 0.005,
+    "lstm_hidden": 128,
+    "seed": 0
+  },
+  "cfg": {
+    "frame_skip": 10,
+    "max_steps": 120,
+    "settle_steps": 4,
+    "action_delta_scale": 0.1,
+    "action_smoothing": 0.7,
+    "base_init_pos_noise": [
+      0.01,
+      0.01,
+      0.008
+    ],
+    "base_init_rpy_noise": [
+      0.05235987755982989,
+      0.05235987755982989,
+      0.08726646259971647
+    ],
+    "init_joint_noise": [
+      0.06981317007977318,
+      0.10471975511965978,
+      0.13962634015954636,
+      0.13962634015954636
+    ],
+    "init_joint_vel_std": 0.03,
+    "ball_init_x_offset_easy": 0.08,
+    "ball_init_x_offset_final": 0.12,
+    "ball_init_yz_noise_easy": 0.01,
+    "ball_init_yz_noise_final": 0.03,
+    "ball_init_vx_mean_easy": -0.3,
+    "ball_init_vx_mean_final": -0.5,
+    "ball_init_vx_noise": 0.05,
+    "ball_init_vy_noise_final": 0.04,
+    "ball_init_vz_noise_final": 0.02,
+    "head_contact_radius": 0.05,
+    "hit_success_ball_vx": 0.02,
+    "head_alignment_gate_dist": 0.05,
+    "fail_ball_x_min": -0.15,
+    "fail_ball_yz_abs": 0.3,
+    "fail_base_pos": 0.3,
+    "fail_base_rot_deg": 60.0,
+    "approach_reward_weight": 0.3,
+    "approach_reward_scale": 6.0,
+    "approach_progress_weight": 1.5,
+    "head_alignment_weight": 1.0,
+    "contact_head_bonus": 15.0,
+    "contact_body_penalty": -3.0,
+    "ball_vx_reward_weight": 25.0,
+    "success_bonus": 200.0,
+    "fail_penalty": -30.0,
+    "action_penalty_weight": 0.01,
+    "action_rate_penalty_weight": 0.2,
+    "joint_vel_penalty_weight": 0.001,
+    "base_drift_penalty_weight": 0.05,
+    "obs_stack_size": 1
+  },
+  "eval_history": [
+    {
+      "timesteps": 10000,
+      "success_rate": 0.03125,
+      "mean_max_vx_after": 0.0156337452732902,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.1330906408040456
+    },
+    {
+      "timesteps": 20000,
+      "success_rate": 0.03125,
+      "mean_max_vx_after": 0.015499390236757567,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13375944698999503
+    },
+    {
+      "timesteps": 30000,
+      "success_rate": 0.0625,
+      "mean_max_vx_after": 0.01363858336453359,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13057782306420707
+    },
+    {
+      "timesteps": 40000,
+      "success_rate": 0.03125,
+      "mean_max_vx_after": 0.014778401828534172,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.1334415425394544
+    },
+    {
+      "timesteps": 50000,
+      "success_rate": 0.03125,
+      "mean_max_vx_after": 0.01590055842003002,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13570775555807102
+    },
+    {
+      "timesteps": 60000,
+      "success_rate": 0.0625,
+      "mean_max_vx_after": 0.01618668890206608,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13374081780138342
+    },
+    {
+      "timesteps": 70000,
+      "success_rate": 0.125,
+      "mean_max_vx_after": 0.01735784874949687,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13430214705583726
+    },
+    {
+      "timesteps": 80000,
+      "success_rate": 0.25,
+      "mean_max_vx_after": 0.017384149523640174,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13225133646092418
+    },
+    {
+      "timesteps": 90000,
+      "success_rate": 0.15625,
+      "mean_max_vx_after": 0.01714701731692687,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13334134592795233
+    },
+    {
+      "timesteps": 100000,
+      "success_rate": 0.09375,
+      "mean_max_vx_after": 0.016780138188187015,
+      "head_hit_rate": 1.0,
+      "body_hit_mean": 0.0,
+      "ball_x_end_mean": 0.13469772141397238
+    }
+  ],
+  "best_success_rate": 0.25,
+  "elapsed_sec": 623.2935049533844
+}

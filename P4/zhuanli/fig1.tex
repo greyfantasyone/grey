@@ -1,0 +1,73 @@
+\documentclass[tikz, border=20pt]{standalone}
+% 使用 ctex 宏包支持中文
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{positioning, fit, arrows.meta, calc, shapes.geometric}
+
+% zhuanli/fig1 配色：黑白专利附图（前景黑 / 背景白）
+\definecolor{cServer}{RGB}{0,0,0}        % 端服务器
+\definecolor{cServerBg}{RGB}{255,255,255}
+\definecolor{cSwitch}{RGB}{0,0,0}        % ToR 交换机
+\definecolor{cSwitchBg}{RGB}{255,255,255}
+\definecolor{cMonitor}{RGB}{0,0,0}       % 监控模块（高亮靠粗线框）
+\definecolor{cMonitorBg}{RGB}{255,255,255}
+\definecolor{cLink}{RGB}{0,0,0}          % 物理链路
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    box/.style={rectangle, draw=cServer, thick, minimum width=4cm, minimum height=1.2cm, align=center, fill=white},
+    dashedbox/.style={rectangle, very thick, dashed, inner sep=20pt},
+    arrow/.style={->, thick},
+    labeltext/.style={font=\bfseries\large}
+]
+
+    % ====================
+    % 1. 端服务器 (End Host) 侧 —— 蓝
+    % ====================
+    \node[box, draw=cServer] (app) at (0, 4) {应用层\\(产生业务流量)};
+    \node[box, draw=cServer] (stack) at (0, 1.5) {网络传输层协议栈};
+    \node[box, draw=cServer] (nic) at (0, -1) {网卡\\直接内存访问发送队列};
+
+    % 监控模块 —— 橙色高亮（核心创新点）
+    \node[box, draw=cMonitor, very thick, fill=cMonitorBg, text width=5.6cm, minimum height=2.2cm] (monitor) at (7.5, 1.5) {\textbf{内核监控模块}\\1. 采样并计算归一化利用率指标\\2. 映射拥塞等级与业务类型\\3. 嵌入拥塞等级与业务类型标签};
+
+    % 服务器内部基础连线
+    \draw[arrow, cServer] (app) -- (stack);
+    \draw[arrow, cServer] (stack) -- node[left, text=black] {原始数据包} (nic);
+
+    % 采集队列状态
+    \draw[->, thick, dashed, cMonitor] (nic.east) -- node[below, font=\small, text=black] {采集队列状态} (nic.east -| monitor.south) -- (monitor.south);
+
+    % 标签嵌入报头
+    \draw[->, thick, dashed, cMonitor] (monitor.west) -- node[above, font=\small, text=black, fill=white, inner sep=1pt] {标签嵌入报头} (stack.east);
+
+    % 服务器外框 (蓝色虚线)
+    \coordinate (server_bottom) at (0, -2);
+    \node[dashedbox, draw=cServer, fit=(app) (stack) (nic) (monitor) (server_bottom)] (server) {};
+    \node[labeltext, text=cServer, above=0.3cm of server.north] {端服务器};
+
+
+    % ====================
+    % 2. 架顶交换机 (ToR Switch) 侧 —— 绿
+    % ====================
+    \node[box, draw=cSwitch] (parser) at (15, 1.5) {入站解析器\\提取拥塞等级\\和业务类型标签};
+    \node[box, draw=cSwitch] (fsm) at (15, -0.5) {有限状态机\\拥塞状态跟踪};
+    \node[box, draw=cSwitch] (scheduler) at (15, -2.5) {区分化调度模块\\计算调度优先级和丢包资格};
+
+    % 交换机内部连线
+    \draw[arrow, cSwitch] (parser) -- (fsm);
+    \draw[arrow, cSwitch] (fsm) -- (scheduler);
+
+    % 交换机虚线外框 (绿)
+    \node[dashedbox, draw=cSwitch, fit=(parser) (fsm) (scheduler)] (switch) {};
+    \node[labeltext, text=cSwitch, above=0.3cm of switch.north] {可编程架顶交换机};
+
+
+    % ====================
+    % 3. 系统间物理链路 (网络传输) —— 红
+    % ====================
+    \draw[arrow, line width=1.5pt, cLink] (nic.south) -- ++(0, -2) -| node[pos=0.25, above, text=cLink] {携带拥塞上下文信息（拥塞等级和业务类型）的网络数据包} ([xshift=-1.5cm]parser.west) -- (parser.west);
+
+\end{tikzpicture}
+\end{document}

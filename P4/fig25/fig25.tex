@@ -1,0 +1,75 @@
+\documentclass[tikz, border=30pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{positioning, arrows.meta, calc, shapes.symbols, fit}
+
+% ====================
+% fig25 专属配色：时序冻结图
+% ====================
+\definecolor{hiQ}{RGB}{46,160,87}      % 高优队列 绿
+\definecolor{hiQbg}{RGB}{228,245,233}
+\definecolor{loQ}{RGB}{245,166,35}     % 低优队列 橙
+\definecolor{loQbg}{RGB}{255,243,224}
+\definecolor{freezeRed}{RGB}{229,57,53}% 冻结 / 状态切换 红
+\definecolor{newGreen}{RGB}{67,160,71} % 解冻后新包 绿
+\definecolor{logicBlue}{RGB}{41,98,255}% 逻辑框 蓝
+\definecolor{logicBlueBg}{RGB}{230,238,255}
+\definecolor{tgray}{RGB}{120,120,120}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    queue/.style={rectangle, thick, minimum width=6cm, minimum height=0.8cm},
+    pkt/.style={rectangle, draw=tgray, thick, fill=white, minimum width=1cm, minimum height=0.5cm, font=\scriptsize},
+    label_style/.style={font=\bfseries\small},
+    arrow/.style={thick, ->, line width=1.2pt}
+]
+
+    % ====================
+    % 1. 硬件队列（高优绿 / 低优橙）
+    % ====================
+    \node[queue, draw=hiQ, fill=hiQbg] (high_q) at (0, 2) {};
+    \node[left=0.2cm of high_q, label_style, text=hiQ] {高优先级队列};
+    \node[queue, draw=loQ, fill=loQbg] (low_q) at (0, 0) {};
+    \node[left=0.2cm of low_q, label_style, text=loQ] {低优先级队列};
+
+    % 队列出口标注
+    \draw[arrow, hiQ] (high_q.east) -- ++(1, 0) node[right, font=\tiny, text=black] {线速转发};
+    \draw[arrow, loQ] (low_q.east) -- ++(1, 0) node[right, font=\tiny, text=black] {降级转发};
+
+    % ====================
+    % 2. 报文时序状态
+    % ====================
+    % 拥塞期进入低优队列的旧包（橙）
+    \node[pkt, draw=loQ, fill=loQ!35] (p1) at (-2.4, 0) {$P_1$};
+    \node[pkt, draw=loQ, fill=loQ!35] (p2) at (-1.2, 0) {$P_2$};
+
+    % 被“冻结”在新队列之外的包
+    \node[pkt] (p3) at (0, 0) {$P_3$};
+    \node[draw=freezeRed, dashed, thick, fit=(p3), inner sep=2pt, label={[text=freezeRed, font=\tiny\bfseries]above:优先级冻结}] {};
+
+    % 解冻后即将进入高优队列的新包（绿）
+    \node[pkt, draw=newGreen, fill=newGreen!25] (p4) at (1.5, 2) {$P_4$};
+
+    % ====================
+    % 3. 时间轴演进
+    % ====================
+    \draw[thick, ->, tgray] (-4, -2) -- (4, -2) node[right, label_style, text=black] {时间 $t$};
+
+    % 状态标注
+    \draw[dashed, tgray] (-1.8, -1.8) -- (-1.8, 2.5) node[above, font=\tiny, align=center, text=black] {拥塞发生\\(维持低优)};
+    \draw[freezeRed, line width=1pt] (0.5, -1.8) -- (0.5, 2.5) node[above, font=\tiny\bfseries, align=center, text=freezeRed] {状态切换 ($S_2 \to S_3$)\\启动冻结保护};
+    \draw[dashed, newGreen!70!black] (2.5, -1.8) -- (2.5, 2.5) node[above, font=\tiny, align=center, text=black] {恢复期结束\\(执行解冻)};
+
+    % ====================
+    % 4. 逻辑流线
+    % ====================
+    \node[draw=logicBlue, thick, rounded corners, fill=logicBlueBg, text width=6cm, font=\tiny, align=left] at (0, -3.5) {
+        \textbf{\textcolor{logicBlue}{逻辑解析：}}\\
+        1. $P_1, P_2$ 在拥塞期进入低优队列；\\
+        2. $P_3$ 到达时状态虽已恢复，但系统检测到低优队列仍有积压，执行“优先级冻结”；\\
+        3. 待 $P_2$ 出队且进入冷却期后，$P_4$ 才允许切换至高优队列，确保 $P_3$ 先于 $P_4$ 到达。
+    };
+
+\end{tikzpicture}
+\end{document}

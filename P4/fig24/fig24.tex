@@ -1,0 +1,84 @@
+\documentclass[tikz, border=30pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{positioning, arrows.meta, calc, shapes.geometric}
+
+% ====================
+% fig24 专属配色：优先级矩阵热力图（绿=高优保护 → 红=优先丢弃）
+% ====================
+\definecolor{hmMax}{RGB}{67,160,71}    % P_max 深绿
+\definecolor{hmHigh}{RGB}{139,195,74}  % P_high 浅绿
+\definecolor{hmMid}{RGB}{255,213,79}   % P_mid 黄
+\definecolor{hmLow}{RGB}{255,152,0}    % P_low 橙
+\definecolor{hmDrop}{RGB}{229,57,53}   % π=0 红
+\definecolor{axisblue}{RGB}{30,77,158}
+\definecolor{cellborder}{RGB}{110,110,110}
+\definecolor{boxblue}{RGB}{41,98,255}
+\definecolor{boxbluebg}{RGB}{230,238,255}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    title/.style={font=\bfseries\Large},
+    header/.style={font=\bfseries\large, align=center},
+    cell/.style={rectangle, draw=cellborder, thick, minimum width=6.5cm, minimum height=3.5cm, align=center, font=\Large},
+    % 热力等级（语义着色）
+    prio_max/.style={fill=hmMax!55},
+    prio_high/.style={fill=hmHigh!55},
+    prio_mid/.style={fill=hmMid!60},
+    prio_low/.style={fill=hmLow!55},
+    prio_drop/.style={fill=hmDrop!55},
+    arrow/.style={thick, ->, line width=2pt, axisblue}
+]
+
+    % ====================
+    % 1. 逻辑矩阵 (3x3) —— 按 (π, δ) 语义热力着色
+    % ====================
+    % 第一行：无损关键型 (LC) —— 全部 P_max 最高保护（深绿）
+    \node[cell, prio_max] (c00) at (0, 0) {$\pi = P_{max}$\\ $\delta = 0$ (禁止丢包)};
+    \node[cell, prio_max, right=0pt of c00] (c01) {$\pi = P_{max}$\\ $\delta = 0$ (禁止丢包)};
+    \node[cell, prio_max, right=0pt of c01] (c02) {$\pi = P_{max}$\\ $\delta = 0$ (禁止丢包)};
+
+    % 第二行：延迟敏感型 (DS)
+    \node[cell, prio_high, below=0pt of c00] (c10) {$\pi = P_{high}$\\ $\delta = 0$ (禁止丢包)};
+    \node[cell, prio_mid, right=0pt of c10] (c11) {$\pi = P_{mid}$\\ $\delta = 0$ (禁止丢包)};
+    \node[cell, prio_low, right=0pt of c11] (c12) {$\pi = P_{low}$\\ $\delta = 1$ (允许丢弃)};
+
+    % 第三行：尽力而为型 (BE)
+    \node[cell, prio_mid, below=0pt of c10] (c20) {$\pi = P_{mid}$\\ $\delta = 0$ (禁止丢包)};
+    \node[cell, prio_low, right=0pt of c20] (c21) {$\pi = P_{low}$\\ $\delta = 1$ (允许丢弃)};
+    \node[cell, prio_drop, right=0pt of c21] (c22) {$\pi = 0$\\ $\delta = 1$ (优先丢弃)};
+
+    % ====================
+    % 2. 坐标轴与标签
+    % ====================
+    \node[header, text=axisblue, above=1cm of c00] (h0) {正常状态 ($S_0$)};
+    \node[header, text=axisblue, above=1cm of c01] (h1) {轻度拥塞 ($S_1$)};
+    \node[header, text=axisblue, above=1cm of c02] (h2) {重度拥塞 ($S_2$)};
+
+    \node[title, text=axisblue, above=1cm of h1] (title_top) {目的地感知状态机输出 ($S_d$)};
+
+    \node[header, text=axisblue, rotate=90] (v0) at (-5.5, 0) {无损关键型 (LC)};
+    \node[header, text=axisblue, rotate=90] (v1) at (-5.5, -3.5) {延迟敏感型 (DS)};
+    \node[header, text=axisblue, rotate=90] (v2) at (-5.5, -7) {尽力而为型 (BE)};
+
+    \node[title, text=axisblue, rotate=90] at (-7, -3.5) {源端业务属性标注 ($BT$)};
+
+    % ====================
+    % 3. 引导箭头
+    % ====================
+    \draw[arrow] (-3.2, 1.8) -- (-3.2, -8.8);
+    \draw[arrow] (-4, 2.5) -- (11, 2.5);
+
+    % ====================
+    % 4. 底部说明框
+    % ====================
+    \node[draw=boxblue, thick, rectangle, rounded corners, fill=boxbluebg, inner sep=15pt, below=2cm of c21, text width=16cm, font=\large] (formula) {
+        \textbf{优先级计算模型：} $\pi = \max(0, P_{base}(BT) - \lambda \cdot S_d)$ \\
+        \textbf{调度决策定义：} \\
+        $\pi$: 映射至交换机硬件队列的优先级编号 \\
+        $\delta$: 基于队列利用率的强制丢包资格标志位
+    };
+
+\end{tikzpicture}
+\end{document}

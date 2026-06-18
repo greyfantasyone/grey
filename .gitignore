@@ -1,0 +1,16 @@
+# LaTeX 编译中间产物
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.out
+*.synctex.gz
+*.synctex(busy)
+missfont.log
+
+# Python
+__pycache__/
+*.pyc
+
+# hostCC 竞赛项目（内含 clone 的官方仓库，不纳入本仓库）
+hostcc_competition/

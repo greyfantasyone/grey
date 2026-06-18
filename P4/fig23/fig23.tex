@@ -1,0 +1,69 @@
+\documentclass[tikz, border=20pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{automata, positioning, arrows.meta, calc, fit}
+
+% ====================
+% fig23 专属配色：状态机按拥塞严重度着色
+% ====================
+\definecolor{stNormal}{RGB}{46,160,87}   % S0 正常 绿
+\definecolor{stNormalBg}{RGB}{226,245,233}
+\definecolor{stLight}{RGB}{245,166,35}    % S1 轻度 橙黄
+\definecolor{stLightBg}{RGB}{255,243,220}
+\definecolor{stHeavy}{RGB}{224,49,49}     % S2 重度 红
+\definecolor{stHeavyBg}{RGB}{253,230,230}
+\definecolor{stRecover}{RGB}{41,121,255}  % S3 恢复 蓝
+\definecolor{stRecoverBg}{RGB}{226,237,255}
+\definecolor{domgray}{RGB}{120,120,120}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=4.5cm,
+    % 状态节点：颜色按节点单独指定
+    every state/.style={thick, minimum size=2.8cm, align=center},
+    every edge/.style={draw, thick, ->},
+    auto,
+    labeltext/.style={font=\bfseries\small}
+]
+
+    % ====================
+    % 1. 核心状态节点（绿 → 橙 → 红 → 蓝）
+    % ====================
+    \node[state, draw=stNormal, fill=stNormalBg, text=black, initial, initial text={开始}] (S0) {$S_0$ \\ 正常状态 \\ ($CL=0$)};
+
+    \node[state, draw=stLight, fill=stLightBg, text=black, right=of S0] (S1) {$S_1$ \\ 轻度拥塞 \\ ($CL=1$)};
+
+    \node[state, draw=stHeavy, fill=stHeavyBg, text=black, below=of S1] (S2) {$S_2$ \\ 重度拥塞 \\ ($CL=2$)};
+
+    \node[state, draw=stRecover, fill=stRecoverBg, text=black, left=of S2] (S3) {$S_3$ \\ 恢复状态 \\ ($CL=0$)};
+
+    % ====================
+    % 2. 状态转移路径（边按转移含义着色）
+    % ====================
+    % S0 -> S1: 发现潜在压力（升级，橙）
+    \path (S0) edge [bend left, draw=stLight] node[above, font=\small, text width=2.5cm, align=center] {连续观测到\\ $N_1$ 个 $CL=1$} (S1);
+
+    % S1 -> S0: 噪声过滤（回落正常，绿）
+    \path (S1) edge [bend left, draw=stNormal] node[below, font=\small] {观测到 $CL=0$} (S0);
+
+    % S1 -> S2: 拥塞加剧（恶化，红）
+    \path (S1) edge [draw=stHeavy] node[right, font=\small, text width=2.5cm] {连续观测到\\ $N_2$ 个 $CL=2$} (S2);
+
+    % S2 -> S3: 压力释放（进入冷却，蓝）
+    \path (S2) edge [draw=stRecover] node[above, font=\small, text width=2.5cm, align=center] {连续观测到\\ $N_3$ 个 $CL=0$} (S3);
+
+    % S3 -> S0: 确认积压排空（绿）
+    \path (S3) edge [draw=stNormal] node[left, font=\small, text width=2cm, align=center] {队列排空且\\ 信号稳定消失} (S0);
+
+    % 自环：维持当前状态（沿用状态色）
+    \path (S0) edge [loop above, draw=stNormal] node[font=\small] {保持 $CL=0$} (S0);
+    \path (S2) edge [loop right, draw=stHeavy] node[font=\small] {保持 $CL=2$} (S2);
+
+    % ====================
+    % 3. 辅助标注：拥塞处理域
+    % ====================
+    \node[draw=domgray, dashed, thick, inner sep=15pt, fit=(S1) (S2), label={[font=\bfseries, text=domgray, yshift=-5pt]below:拥塞处理域}] (domain) {};
+
+\end{tikzpicture}
+\end{document}

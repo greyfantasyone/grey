@@ -1,0 +1,103 @@
+\documentclass[tikz, border=20pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{positioning, arrows.meta, calc, shapes.geometric, backgrounds}
+
+% ====================
+% 配色方案（参考 example1/2 的模块化彩色架构图风格）
+% 每个语义模块：浅色填充 + 同色系描边
+% ====================
+\definecolor{cBlue}{RGB}{52,120,246}     % 硬件层（CPU/DRAM）
+\definecolor{cBlueBg}{RGB}{231,240,255}
+\definecolor{cPurple}{RGB}{142,68,173}   % 总线
+\definecolor{cPurpleBg}{RGB}{243,232,250}
+\definecolor{cOrange}{RGB}{240,140,0}    % 网卡 NIC 区域 / 队列高亮
+\definecolor{cOrangeBg}{RGB}{255,244,225}
+\definecolor{cRed}{RGB}{220,60,50}       % 核心监控模块（强调）
+\definecolor{cRedBg}{RGB}{253,235,233}
+\definecolor{cGreen}{RGB}{34,160,80}     % 输出
+\definecolor{cGreenBg}{RGB}{228,245,233}
+\definecolor{cGray}{RGB}{130,130,130}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    % 基础组件样式（硬件层：蓝色系）
+    hwbox/.style={rectangle, draw=cBlue, thick, fill=cBlueBg, minimum width=3.5cm, minimum height=1.2cm, align=center, font=\small},
+    % 总线样式（紫色系）
+    bus/.style={rectangle, draw=cPurple, thick, fill=cPurpleBg, minimum width=10.5cm, minimum height=0.6cm, font=\footnotesize\bfseries, text=cPurple!60!black},
+    % 队列格样式
+    cell/.style={rectangle, draw=cGray, thick, minimum size=0.6cm, fill=white},
+    active/.style={fill=cOrange!35, draw=cOrange},
+    % 监控模块样式（核心：红色强调）
+    module/.style={rectangle, draw=cRed, very thick, fill=cRedBg, rounded corners, minimum width=4.5cm, minimum height=2.2cm, align=center, font=\small},
+    % 箭头：数据通路用蓝色
+    arrow/.style={->, thick, cBlue!75!black}
+]
+
+    % ====================
+    % 1. 顶部：主机硬件层
+    % ====================
+    \node[hwbox] (cpu) at (0, 4.5) {中央处理器 (CPU)\\处理应用层逻辑};
+    \node[hwbox, right=2.5cm of cpu] (mem) {系统内存 (DRAM)\\存储待发送报文数据};
+
+    % PCIe 总线 (修复了定位，确保文字不溢出)
+    \node[bus] (pcie_bus) at ($(cpu.south)!0.5!(mem.south) + (0, -1.5)$) {PCIe 总线 (数据传输路径)};
+
+    \draw[arrow] (cpu) -- (cpu |- pcie_bus.north);
+    \draw[arrow] (mem) -- (mem |- pcie_bus.north);
+
+    % ====================
+    % 2. 下部：网卡硬件层 (NIC) —— 橙色分区背景
+    % ====================
+    % 先铺一层浅橙底色，再画橙色虚线边框
+    \fill[cOrangeBg] (-4, -0.5) rectangle (9, -4.8);
+    \draw[very thick, dashed, draw=cOrange] (-4, -0.5) rectangle (9, -4.8);
+    \node[font=\bfseries, text=cOrange!70!black, anchor=north west] at (-3.8, -0.7) {网卡硬件 (NIC)};
+
+    % DMA 控制器
+    \node[hwbox, draw=cOrange, fill=white, minimum width=2.5cm] (dma) at (-1.5, -2.8) {DMA 控制器\\读取描述符};
+
+    % 描述符队列示意
+    \node[cell] (c1) at (2.2, -2.8) {};
+    \node[cell, active, right=0pt of c1] (c2) {};
+    \node[cell, active, right=0pt of c2] (c3) {};
+    \node[cell, active, right=0pt of c3] (c4) {};
+    \node[cell, right=0pt of c4] (c5) {};
+    \node[cell, right=0pt of c5] (c6) {};
+    \node[cell, right=0pt of c6] (c7) {};
+
+    \node[below=0.3cm of c4, font=\footnotesize] {发送描述符队列 (Descriptor Queue)};
+
+    % 指针标注
+    \draw[<-, cGray] (c2.north) -- ++(0, 0.5) node[above, font=\scriptsize\bfseries, text=black] {Head (已读取)};
+    \draw[<-, cGray] (c5.north) -- ++(0, 0.5) node[above, font=\scriptsize\bfseries, text=black] {Tail (待读取)};
+
+    % ====================
+    % 3. 核心：内核监控模块（红色强调）
+    % ====================
+    \node[module] (monitor) at (4, 2) {
+        \textbf{\textcolor{cRed!80!black}{HoCM 内核监控模块}}\\
+        \vspace{0.1cm}
+        \begin{tabular}{l}
+            1. 采样 $Tail - Head$ 差值 \\
+            2. 计算瞬时占用率 $\rho = L_{occ} / L_{max}$ \\
+            3. 执行阈值映射决策
+        \end{tabular}
+    };
+
+    % 采样连线（红色虚线，呼应监控模块）
+    \draw[->, dashed, very thick, cRed] (monitor.south) -- ++(0, -1) -- (c4.north west);
+    \node[right=0.2cm, font=\scriptsize\itshape, text=cRed!70!black] at (4, 0.6) {描述符指针采样 (Sampling)};
+
+    % ====================
+    % 4. 输出：指标演进（绿色）
+    % ====================
+    \node[hwbox, right=1.2cm of monitor, draw=cGreen, fill=cGreenBg, minimum width=3.2cm] (output) {
+        拥塞指标输出\\
+        $\rho_{dma} \in [0, 1]$
+    };
+    \draw[->, thick, cGreen!70!black] (monitor) -- (output);
+
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,66 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{ctex} % 支持中文显示
+\usepackage{xcolor}
+
+% fig12 专属配色：四列设备分色
+\definecolor{colSend}{RGB}{41,98,255}    % 发送端 蓝
+\definecolor{colSendBg}{RGB}{230,238,255}
+\definecolor{colToR}{RGB}{240,140,0}      % ToR (HoCM) 橙 高亮
+\definecolor{colToRBg}{RGB}{255,243,224}
+\definecolor{colCore}{RGB}{120,120,120}   % 核心交换机 灰
+\definecolor{colCoreBg}{RGB}{242,242,242}
+\definecolor{colRecv}{RGB}{46,160,87}     % 接收端 绿
+\definecolor{colRecvBg}{RGB}{228,245,233}
+
+\begin{document}
+\begin{tikzpicture}[>=stealth, thick]
+
+% 样式定义
+\tikzstyle{innerbox} = [draw, solid, thick, rectangle, minimum width=2.2cm, minimum height=1.2cm, align=center, font=\songti, fill=white]
+\tikzstyle{title} = [align=center, font=\songti\bfseries]
+
+% 定义各列的中心 X 坐标
+\def\xS{0}     % 发送端主机
+\def\xT{4.5}   % ToR交换机
+\def\xC{9}     % 核心交换机
+\def\xR{13.5}  % 接收端主机
+
+% 绘制四个外部大方框 (实线) —— 各列分色 + 浅色底
+\def\yTop{2.5}
+\def\yBot{-7.5}
+\def\hw{1.6} % 外部大框的宽度一半
+
+\filldraw[draw=colSend, fill=colSendBg, thick] (\xS-\hw, \yTop) rectangle (\xS+\hw, \yBot);
+\filldraw[draw=colToR,  fill=colToRBg,  very thick] (\xT-\hw, \yTop) rectangle (\xT+\hw, \yBot);
+\filldraw[draw=colCore, fill=colCoreBg, thick] (\xC-\hw, \yTop) rectangle (\xC+\hw, \yBot);
+\filldraw[draw=colRecv, fill=colRecvBg, thick] (\xR-\hw, \yTop) rectangle (\xR+\hw, \yBot);
+
+% 顶部标题
+\node[title, text=colSend!80!black] at (\xS, 1.6) {发送端主机};
+\node[title, text=colToR!70!black] at (\xT, 1.6) {ToR交换机 \\ (HoCM启用)};
+\node[title, text=colCore!60!black] at (\xC, 1.6) {核心交换机 \\ (标准转发)};
+\node[title, text=colRecv!70!black] at (\xR, 1.6) {接收端主机};
+
+% 发送端主机内部节点
+\node[innerbox, draw=colSend] (S1) at (\xS, 0) {DMA队列 \\ 采样};
+\node[innerbox, draw=colSend] (S2) at (\xS, -2) {CL/BT \\ 嵌入};
+
+% ToR交换机内部节点
+\node[innerbox, draw=colToR] (T1) at (\xT, 0) {Parser \\ 提取CL/BT};
+\node[innerbox, draw=colToR] (T2) at (\xT, -2) {FSM更新};
+\node[innerbox, draw=colToR] (T3) at (\xT, -4) {调度决策};
+\node[innerbox, draw=colToR] (T4) at (\xT, -6) {队列调度};
+
+% 核心交换机内部节点
+\node[innerbox, draw=colCore] (C1) at (\xC, 0) {Parser \\ 标准转发};
+
+% 接收端主机内部节点
+\node[innerbox, draw=colRecv] (R1) at (\xR, 0) {应用层 \\ 处理};
+
+% 横向数据流箭头连接
+\draw[->, colSend] (S1.east) -- (T1.west);
+\draw[->, colToR] (T1.east) -- (C1.west);
+\draw[->, colCore] (C1.east) -- (R1.west);
+
+\end{tikzpicture}
+\end{document}

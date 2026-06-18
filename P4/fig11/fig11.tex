@@ -1,0 +1,56 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{ctex} % 支持中文显示
+\usepackage{xcolor}
+
+% fig11 专属配色：状态按拥塞严重度着色
+\definecolor{stNormal}{RGB}{46,160,87}
+\definecolor{stLight}{RGB}{245,166,35}
+\definecolor{stHeavy}{RGB}{224,49,49}
+\definecolor{stRecover}{RGB}{41,121,255}
+\definecolor{stRoll}{RGB}{142,68,173}
+
+\begin{document}
+\begin{tikzpicture}[>=stealth, thick]
+
+% 定义节点样式
+\tikzstyle{state} = [draw, solid, thick, rectangle, minimum width=2.2cm, minimum height=1.6cm, align=center, font=\sffamily]
+\tikzstyle{rollback} = [draw, solid, thick, rectangle, minimum width=5cm, minimum height=1.2cm, align=center, font=\small\sffamily]
+
+% 放置所有核心节点（按状态语义着色）
+\node[state, draw=stNormal, fill=stNormal!12] (S0) at (0, 0) {S0 \\ Normal};
+\node[state, draw=stLight, fill=stLight!18] (S1) at (5, 0) {S1 \\ Light};
+\node[state, draw=stHeavy, fill=stHeavy!15] (S2) at (10, 0) {S2 \\ Heavy};
+
+% 下方节点位置
+\node[state, draw=stRecover, fill=stRecover!12] (S3) at (2.5, -4) {S3 \\ Recovery};
+\node[rollback, draw=stRoll, fill=stRoll!12] (Rollback) at (7.5, -4) {任意状态回退（复发时）};
+
+% 水平状态转移：S0 与 S1
+\draw[->, stLight] ([yshift=3mm]S0.east) -- ([yshift=3mm]S1.west) node[midway, above, text=black] {$CL=1 \geq N_1$};
+\draw[<-, stNormal] ([yshift=-3mm]S0.east) -- ([yshift=-3mm]S1.west) node[midway, below, text=black] {$CL=0 \geq N_3$};
+
+% 水平状态转移：S1 与 S2
+\draw[->, stHeavy] ([yshift=3mm]S1.east) -- ([yshift=3mm]S2.west) node[midway, above, text=black] {$CL=2 \geq N_2$};
+\draw[<-, stNormal] ([yshift=-3mm]S1.east) -- ([yshift=-3mm]S2.west);
+
+% 向下的转移：到回退状态
+\draw[->, stRoll] ([xshift=7mm]S1.south) -- ([xshift=7mm]S1.south |- Rollback.north) node[midway, right, text=black] {$CL=1 \geq N_3$};
+\draw[->, stRoll] ([xshift=-7mm]S2.south) -- ([xshift=-7mm]S2.south |- Rollback.north) node[midway, right, text=black] {$CL=0 \geq N_3$};
+
+% 回退状态 到 S3
+\draw[->, stRecover] (Rollback.west) -- (S3.east);
+
+% S3 回到 S0
+\draw[->, stNormal] (S3.west) -- (S3.west -| S0.south) -- (S0.south) node[midway, right, text=black] {$CL=0 \geq N_4$};
+
+% 顶部的长循环：S2 回到 S0
+\draw[->, stNormal] (S2.north) -- ++(0, 1.2) -| (S0.north);
+
+% 底部的长循环：Rollback 重新进入 S3 底部
+\draw[->, stRecover] (Rollback.east) -- ++(0.5, 0) |- ([yshift=-0.8cm]S3.south) -- (S3.south);
+
+% 底部备注文字
+\node at (5, -6) {\small (实际转移规则见表3-5)};
+
+\end{tikzpicture}
+\end{document}

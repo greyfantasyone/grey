@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat /home/user/projects/unfinished/checkpoints/pureA_lstm_eval/*.json)",
+      "Bash(python:*)",
+      "Bash(python3 -c ':*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('timesteps:', d['timesteps']\\); print\\('assist_mode:', d['cfg']['assist_mode']\\); print\\('n_envs:', d['n_envs']\\)\")",
+      "Bash(python3 -c \"import mujoco; print\\('mujoco', mujoco.__version__\\)\")",
+      "Bash(python3 -c \"import gymnasium; print\\('gymnasium', gymnasium.__version__\\)\")",
+      "Bash(python3 -c \"import stable_baselines3; print\\('sb3', stable_baselines3.__version__\\)\")",
+      "Bash(python3 -c \"import sb3_contrib; print\\('sb3_contrib', sb3_contrib.__version__\\)\")",
+      "Bash(python3 -c \"import numpy; print\\('numpy', numpy.__version__\\)\")",
+      "Bash(conda info:*)",
+      "Bash(conda run:*)",
+      "Bash(conda create:*)",
+      "Bash(awk '{print $1, $2, $3, $11}')",
+      "Bash(awk '{print $2, $3, $4}')",
+      "Bash(awk '{print \"PID:\"$2, \"CPU:\"$3\"%\", \"MEM:\"$4\"%\"}')",
+      "Bash(ls:*)",
+      "Bash(awk '{print \"PID:\"$2, \"CPU:\"$3\"%\"}')",
+      "WebSearch",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "Bash(nvidia-smi)",
+      "Bash(lscpu)",
+      "Bash(tee /tmp/stage2v3.log)",
+      "Bash(tee /tmp/cont9_train.log)",
+      "Bash(tee /tmp/cont10_train.log)",
+      "Bash(tee /tmp/cont11_train.log)",
+      "Bash(tee /tmp/cont12_train.log)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('total_timesteps:', d['timesteps']\\)\")",
+      "Bash(tee /tmp/cont13_train.log)",
+      "Bash(tee /tmp/cont14_train.log)",
+      "Bash(tee /tmp/cont15_train.log)",
+      "Bash(tee /tmp/cont16_train.log)",
+      "Bash(tee /tmp/cont17_train.log)",
+      "Bash(tee /tmp/cont18_train.log)",
+      "Bash(tee /tmp/cont19_train.log)",
+      "Bash(tee /tmp/cont21_train.log)"
+    ]
+  }
+}

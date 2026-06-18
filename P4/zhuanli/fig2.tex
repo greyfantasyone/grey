@@ -1,0 +1,89 @@
+\documentclass[tikz, border=20pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{positioning, arrows.meta, calc, shapes.symbols, patterns, shapes.multipart}
+
+% zhuanli/fig2 配色：黑白专利附图（前景黑 / 背景白）
+\definecolor{cDram}{RGB}{0,0,0}         % DRAM
+\definecolor{cDramBg}{RGB}{255,255,255}
+\definecolor{cPcie}{RGB}{0,0,0}         % PCIe 总线
+\definecolor{cPcieBg}{RGB}{255,255,255}
+\definecolor{cNic}{RGB}{0,0,0}          % NIC
+\definecolor{cNicBg}{RGB}{255,255,255}
+\definecolor{cCong}{RGB}{0,0,0}         % 拥塞点
+\definecolor{cNote}{RGB}{0,0,0}         % 成因框
+\definecolor{cNoteBg}{RGB}{255,255,255}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    box/.style={rectangle, draw=black, thick, minimum width=3.5cm, minimum height=1.2cm, align=center, fill=white},
+    bus/.style={rectangle, draw=cPcie, thick, minimum width=10cm, minimum height=0.8cm, fill=cPcieBg},
+    queue/.style={draw=cNic, thick, rectangle split, rectangle split parts=5, rectangle split horizontal, minimum height=0.6cm},
+    impact/.style={starburst, draw=cCong, very thick, fill=white, inner sep=2pt, font=\bfseries\small, text=black},
+    arrow/.style={->, thick, black}
+]
+
+    % ====================
+    % 1. 顶部：主机内存 (DRAM) —— 蓝
+    % ====================
+    \node[box, draw=cDram, fill=cDramBg] (dram) at (0, 4) {主内存\\存储待发送报文数据};
+
+    % 绘制内存中的缓冲区示意
+    \draw[thick, cDram] (-1.5, 4.8) -- (1.5, 4.8);
+    \draw[thick, cDram] (-1.5, 3.2) -- (1.5, 3.2);
+
+    % ====================
+    % 2. 中间：PCIe 总线层 —— 紫
+    % ====================
+    \node[bus] (pcie) at (0, 1.5) {PCIe 总线 (数据传输路径)};
+    \node[left=0.1cm of pcie.west, font=\small, text=cPcie] {PCIe 链路};
+
+    % ====================
+    % 3. 底部：网卡硬件 (NIC) —— 橙区
+    % ====================
+    \fill[cNicBg] (-5, -0.5) rectangle (5, -4);
+    \draw[thick, dashed, cNic] (-5, -0.5) rectangle (5, -4);
+    \node[font=\bfseries, text=cNic] at (-3.5, -0.8) {网卡};
+
+    % DMA 控制器
+    \node[box, draw=cNic, minimum width=2.5cm] (dma) at (-3, -2.5) {直接内存访问控制器\\(读取描述符)};
+
+    % 描述符队列 (使用小方格表示)
+    \node[queue, fill=white] (q) at (1, -2.5) {};
+    \node[below=0.1cm of q, font=\small] {直接内存访问发送描述符队列};
+
+    % 报文缓冲区
+    \node[box, draw=cNic, minimum width=2.5cm] (buf) at (4, -2.5) {报文\\缓冲区};
+
+    % ====================
+    % 4. 数据流与拥塞点标注
+    % ====================
+    % 数据从内存流向总线
+    \draw[arrow, line width=1pt, cDram] (0, 3.2) -- (0, 1.9);
+    \node[right=0.1cm] at (0, 2.5) {报文拷贝/读取};
+
+    % 数据从总线流向网卡
+    \draw[arrow, line width=1pt, cPcie] (0, 1.1) -- (0, -2.5) -- (q.west);
+
+    % 连线：DMA -> 队列 -> 缓冲区
+    \draw[arrow, cNic] (dma) -- (q);
+    \draw[arrow, cNic] (q) -- (buf);
+
+    % 标注拥塞产生点 (红色爆炸)
+    \node[impact] (congestion) at (0, 0.2) {拥塞产生点};
+
+    % 标注文字说明 (金黄框)
+    \node[draw=cNote, thick, rectangle, rounded corners, fill=cNoteBg, inner sep=5pt, text width=5cm, font=\small] (note) at (6, 3.5) {
+        \textbf{\textcolor{black}{拥塞成因分析：}}\\
+        1. PCIe 带宽限制\\
+        2. 内存带宽竞争\\
+        3. 直接内存访问描述符堆积
+    };
+    \draw[dashed, ->, cNote] (note.south west) -- (congestion.north east);
+
+    % 标注排队延迟
+    \draw[<->, thick, cCong] (q.west) ++(0, 0.8) -- node[above, font=\small, text=black] {排队延迟增加} ($(q.east) + (0, 0.8)$);
+
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,81 @@
+<mujoco model="phy3">
+  <compiler angle="radian" meshdir="meshes" autolimits="true" />
+  <option timestep="0.002" gravity="0 0 0" wind="0 0 0" integrator="implicitfast" density="1000" viscosity="2e-3" />
+  <visual>
+    <global realtime="1" />
+    <quality shadowsize="16384" numslices="28" offsamples="4" />
+    <headlight diffuse=".8 .8 .8" specular="0.5 0.5 0.5" active="1" />
+    <rgba fog=".2 0 .2 1" haze=".1 .1 .1 .1" />
+  </visual>
+  <asset>
+    <mesh name="base_link" file="base_link.STL" />
+    <mesh name="Link_1" file="Link_1.STL" />
+    <mesh name="Link_2" file="Link_2.STL" />
+    <mesh name="Link_3" file="Link_3.STL" />
+    <mesh name="Link_4" file="Link_4.STL" />
+    <mesh name="mag_left" file="mag_left.STL" />
+    <mesh name="mag_forward" file="mag_forward.STL" />
+    <mesh name="mag_right" file="mag_right.STL" />
+    <texture name="plane" type="2d" builtin="flat" rgb1=".1 .1 .1" rgb2=".9 .9 .9" width="512" height="512" mark="cross" markrgb=".8 .8 .8" />
+    <material name="plane" reflectance="0.3" texture="plane" texrepeat="1 1" texuniform="true" />
+    <material name="box" rgba="0 0.5 0 1" emission="0" />
+  </asset>
+  <worldbody>
+    <geom name="floor" pos="0 0 -.2" size="0 0 .25" type="plane" material="plane" condim="3" />
+    <light directional="true" ambient=".3 .3 .3" pos="30 30 30" dir="0 -2 -1" diffuse=".5 .5 .5" specular=".5 .5 .5" />
+    <body name="base_link" pos="0 0 0">
+      <freejoint />
+      <inertial pos="-0.01225 -0.00079323 -0.0043885" quat="1 0 0 0" mass="2.5" diaginertia="5.4394e-02 7.3252e-02 8.6248e-02" />
+      <geom type="mesh" rgba=".6 .6 .6 1" mesh="base_link" />
+      <body name="Link_1" pos="-0.127952 -0.000369697 0.00373371">
+        <inertial pos="-0.016678 -0.0018477 1.4282e-06" quat="-0.085072 0.702028 0.085056 0.701915" mass=".8" diaginertia="1.6598e-04 1.54045e-04 8.48987e-05" />
+        <joint name="Joint_1" pos="0 0 0" axis="1 0 0" damping="0.20" />
+        <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="Link_1" />
+        <body name="Link_2" pos="-0.0146023 0.00135933 -0.00034031">
+          <inertial pos="-0.050734 0.0011164 -0.0010549" quat="0.535197 0.752348 0.086355 -0.374272" mass="1.2" diaginertia="8.85962e-04 8.62711e-04 8.30557e-04" />
+          <joint name="Joint_2" pos="0 0 0" axis="0 -1 0" damping="0.30" />
+          <geom type="mesh" rgba="0.6 0.6 0.5 1" mesh="Link_2" />
+          <body name="Link_3" pos="-0.073097 0.000840727 0.00123982">
+            <inertial pos="-0.094957 -8.7181e-07 -0.00070345" quat="0.510757 0.48902 0.488988 0.510762" mass=".8" diaginertia="0.0033994 0.00265831 0.00117139" />
+            <joint name="Joint_3" pos="0 0 0" axis="0 0 -1" damping="0.30" />
+            <geom type="mesh" rgba="0.6 0.6 0.5 1" mesh="Link_3" />
+            <body name="Link_4" pos="-0.1488 0 0.0004">
+              <inertial pos="-0.073226 -2.4617e-06 0.00049893" quat="0.570607 0.41761 0.417618 0.570618" mass="1.2" diaginertia="0.002016 0.00117379 0.00106561" />
+              <joint name="Joint_4" pos="0 0 0" axis="0 0 -1" damping="0.25" />
+              <geom type="mesh" rgba="0.6 0.6 0.5 1" mesh="Link_4" />
+              <site name="ee" pos="-0.15 0 0" size="0.015" rgba="1 0 0 1" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="mag_forward" pos="0.059 0 0.004">
+        <inertial pos="0.065101 -1.9727E-05 0.0049" mass="0.041049" />
+        <geom type="mesh" rgba="0.24 0.6 0.4 1" mesh="mag_forward" />
+      </body>
+      <body name="mag_left" pos="0 0.045 0.004">
+        <inertial pos="4.7617E-05 0.052534 0.0049" mass="0.041049" />
+        <geom type="mesh" rgba="0.24 0.6 0.4 1" mesh="mag_left" />
+      </body>
+      <body name="mag_right" pos="0 -0.045 0.004">
+        <inertial pos="4.7661E-05 -0.052573 0.0048999" mass="0.041049" />
+        <geom type="mesh" rgba="0.24 0.6 0.4 1" mesh="mag_right" />
+      </body>
+      <site name="head_proxy" pos="0.10 0 0.0" size="0.012" rgba="0 0.6 1 1" />
+    </body>
+    <body name="target_body" pos="-0.46 0.00 0.00">
+      <geom name="target_geom" type="sphere" size="0.025" rgba="0.85 0.20 0.20 1" contype="0" conaffinity="0" />
+      <site name="target_site" pos="0 0 0" size="0.015" rgba="1 0.1 0.1 1" />
+    </body>
+    <camera name="grasp_side" pos="0.55 -0.95 0.35" xyaxes="1 0 0 0 0.35 0.94" />
+    <camera name="grasp_top" pos="0.05 0.00 0.90" xyaxes="1 0 0 0 1 0" />
+  </worldbody>
+  <actuator>
+    <adhesion name="forward" body="mag_forward" ctrlrange="0 1" gain="100" />
+    <adhesion name="left" body="mag_left" ctrlrange="0 1" gain="100" />
+    <adhesion name="right" body="mag_right" ctrlrange="0 1" gain="100" />
+    <position name="j1" joint="Joint_1" ctrlrange="-1.57 1.57" ctrllimited="true" kp="10" />
+    <position name="j2" joint="Joint_2" ctrlrange="-1.57 1.57" ctrllimited="true" kp="10" />
+    <position name="j3" joint="Joint_3" ctrlrange="-1.57 1.57" ctrllimited="true" kp="10" />
+    <position name="j4" joint="Joint_4" ctrlrange="-1.57 1.57" ctrllimited="true" kp="10" />
+  </actuator>
+</mujoco>

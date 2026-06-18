@@ -1,0 +1,58 @@
+\documentclass[tikz, border=20pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{automata, positioning, arrows.meta, calc, fit}
+
+% zhuanli/fig3 配色：黑白专利附图（前景黑 / 背景白）
+\definecolor{stNormal}{RGB}{0,0,0}
+\definecolor{stNormalBg}{RGB}{255,255,255}
+\definecolor{stLight}{RGB}{0,0,0}
+\definecolor{stLightBg}{RGB}{255,255,255}
+\definecolor{stHeavy}{RGB}{0,0,0}
+\definecolor{stHeavyBg}{RGB}{255,255,255}
+\definecolor{stRecover}{RGB}{0,0,0}
+\definecolor{stRecoverBg}{RGB}{255,255,255}
+\definecolor{domgray}{RGB}{0,0,0}
+\definecolor{boxblue}{RGB}{0,0,0}
+\definecolor{boxblueBg}{RGB}{255,255,255}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=4.5cm,
+    every state/.style={thick, minimum size=2.8cm, align=center},
+    every edge/.style={draw, thick, ->},
+    auto
+]
+
+    % ====================
+    % 1. 状态节点（绿/橙/红/蓝）
+    % ====================
+    \node[state, draw=stNormal, fill=stNormalBg, text=black, initial, initial text={开始}] (S0) {正常状态 $S_0$ \\ ($CL=0$)};
+
+    \node[state, draw=stLight, fill=stLightBg, text=black, right=of S0] (S1) {轻度拥塞 $S_1$ \\ ($CL=1$)};
+
+    \node[state, draw=stHeavy, fill=stHeavyBg, text=black, below=of S1] (S2) {重度拥塞 $S_2$ \\ ($CL=2$)};
+
+    \node[state, draw=stRecover, fill=stRecoverBg, text=black, left=of S2] (S3) {恢复状态 $S_3$ \\ ($CL=0$)};
+
+    % ====================
+    % 2. 状态转移逻辑（边按含义着色）
+    % ====================
+    \path (S0) edge [bend left, draw=stLight] node[above, font=\small, text width=2.5cm, align=center] {连续观测到\\ $N_1$ 个 $CL=1$} (S1);
+
+    \path (S1) edge [bend left, draw=stNormal] node[below, font=\small] {观测到 $CL=0$} (S0);
+
+    \path (S1) edge [draw=stHeavy] node[right, font=\small, text width=2.5cm] {连续观测到\\ $N_2$ 个 $CL=2$} (S2);
+
+    \path (S2) edge [draw=stRecover] node[above, font=\small, text width=2.5cm, align=center] {连续观测到\\ $N_3$ 个 $CL=0$} (S3);
+
+    \path (S3) edge [draw=stNormal] node[left, font=\small, text width=2.5cm, align=center] {队列排空且\\信号稳定消失} (S0);
+
+    \path (S0) edge [loop above, draw=stNormal] node[font=\small] {保持 $CL=0$} (S0);
+    \path (S2) edge [loop right, draw=stHeavy] node[font=\small] {保持 $CL=2$} (S2);
+
+
+
+\end{tikzpicture}
+\end{document}

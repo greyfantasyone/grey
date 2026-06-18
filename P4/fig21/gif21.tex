@@ -1,0 +1,79 @@
+\documentclass[tikz, border=20pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{positioning, arrows.meta, calc, shapes.geometric, backgrounds}
+
+% ====================
+% fig21 专属配色：四阶段流水线，色相沿处理流程渐变
+% ====================
+\definecolor{s1main}{RGB}{41,98,255}    % 阶段一 蓝
+\definecolor{s1bg}{RGB}{225,236,255}
+\definecolor{s2main}{RGB}{0,151,167}    % 阶段二 青
+\definecolor{s2bg}{RGB}{220,245,247}
+\definecolor{s3main}{RGB}{56,142,60}    % 阶段三 绿
+\definecolor{s3bg}{RGB}{228,245,230}
+\definecolor{s4main}{RGB}{156,39,176}   % 阶段四 紫
+\definecolor{s4bg}{RGB}{244,229,250}
+\definecolor{pktgold}{RGB}{245,166,35}  % 报文 金橙
+\definecolor{pktgoldbg}{RGB}{255,243,224}
+\definecolor{linkred}{RGB}{229,57,53}   % 物理链路 红
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    stage/.style={rectangle, thick, minimum width=3.5cm, minimum height=6cm, dashed, inner sep=10pt},
+    logic/.style={rectangle, thick, minimum width=3cm, minimum height=1cm, align=center, font=\small},
+    packet/.style={rectangle, thick, minimum width=2.5cm, minimum height=0.6cm, font=\scriptsize},
+    arrow/.style={->, thick}
+]
+
+    % ====================
+    % 1. 四个逻辑阶段容器（蓝 → 青 → 绿 → 紫）
+    % ====================
+    \node[stage, draw=s1main, fill=s1bg, label={[text=s1main]above:阶段一：内源感知}] (s1) at (0, 0) {};
+    \node[stage, draw=s2main, fill=s2bg, right=0.8cm of s1, label={[text=s2main]above:阶段二：原位标注}] (s2) {};
+    \node[stage, draw=s3main, fill=s3bg, right=0.8cm of s2, label={[text=s3main]above:阶段三：状态跟踪}] (s3) {};
+    \node[stage, draw=s4main, fill=s4bg, right=0.8cm of s3, label={[text=s4main]above:阶段四：策略执行}] (s4) {};
+
+    % ====================
+    % 2. 阶段一：内源感知（蓝，节点深浅区分）
+    % ====================
+    \node[logic, draw=s1main, fill=white] (hardware) at (s1.center) [yshift=1.5cm] {硬件资源采样\\ (DMA / PCIe)};
+    \node[logic, draw=s1main, fill=s1main!18] (cl_calc) at (s1.center) [yshift=-1.5cm] {拥塞等级计算\\ $CL = f(\rho_{dma})$};
+    \draw[arrow, s1main] (hardware) -- (cl_calc);
+
+    % ====================
+    % 3. 阶段二：原位标注（青框 + 金橙报文）
+    % ====================
+    \node[packet, draw=pktgold, fill=pktgoldbg] (pkt_raw) at (s2.center) [yshift=1.5cm] {原始数据报文};
+    \node[logic, draw=s2main, fill=white] (marking) at (s2.center) [yshift=0cm] {标签注入处理\\ ToS / DSCP 字段};
+    \node[packet, draw=pktgold, fill=pktgold!30] (pkt_marked) at (s2.center) [yshift=-1.5cm] {携带标签报文\\ $\langle CL, BT \rangle$};
+
+    \draw[arrow, s2main] (pkt_raw) -- (marking);
+    \draw[arrow, s2main] (marking) -- (pkt_marked);
+
+    % ====================
+    % 4. 阶段三：状态跟踪（绿）
+    % ====================
+    \node[logic, draw=s3main, fill=white] (parsing) at (s3.center) [yshift=1.5cm] {线速报文解析\\ 提取拥塞上下文};
+    \node[logic, draw=s3main, fill=s3main!18] (fsm_update) at (s3.center) [yshift=-1.5cm] {FSM 状态更新\\ 维护目的地深度};
+    \draw[arrow, s3main] (parsing) -- (fsm_update);
+
+    % ====================
+    % 5. 阶段四：策略执行（紫）
+    % ====================
+    \node[logic, draw=s4main, fill=white] (map) at (s4.center) [yshift=1.5cm] {优先级映射逻辑\\ 计算 $\pi$ 与 $\delta$};
+    \node[logic, draw=s4main, fill=s4main!15] (dispatch) at (s4.center) [yshift=-1.5cm] {差异化队列调度\\ 缓冲区动态控制};
+    \draw[arrow, s4main] (map) -- (dispatch);
+
+    % ====================
+    % 6. 跨阶段信息流转
+    % ====================
+    \draw[arrow, dashed, s1main] (cl_calc.east) -- node[above, font=\tiny, text=s1main] {提供 CL 指标} (marking.west |- cl_calc.east);
+
+    \draw[arrow, line width=1.4pt, linkred] (pkt_marked.east) -- node[above, font=\tiny, align=center, text=linkred] {物理链路传输\\ (网络报文载体)} (parsing.west |- pkt_marked.east);
+
+    \draw[arrow, dashed, s3main] (fsm_update.east) -- node[above, font=\tiny, text=s3main] {输入状态 $S_d$} (map.west |- fsm_update.east);
+
+\end{tikzpicture}
+\end{document}

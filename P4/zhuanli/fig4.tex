@@ -1,0 +1,85 @@
+\documentclass[tikz, border=20pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+% 引入了 shapes.geometric 来绘制判断菱形
+\usetikzlibrary{positioning, arrows.meta, calc, shapes.geometric}
+
+% zhuanli/fig4 配色：黑白专利附图（前景黑 / 背景白）
+\definecolor{cTerm}{RGB}{0,0,0}        % 起止
+\definecolor{cTermBg}{RGB}{255,255,255}
+\definecolor{cProc}{RGB}{0,0,0}        % 处理
+\definecolor{cProcBg}{RGB}{255,255,255}
+\definecolor{cDec}{RGB}{0,0,0}         % 判断
+\definecolor{cDecBg}{RGB}{255,255,255}
+\definecolor{cHeavy}{RGB}{0,0,0}       % CL=2
+\definecolor{cLight}{RGB}{0,0,0}       % CL=1
+\definecolor{cYes}{RGB}{0,0,0}         % 是 分支
+\definecolor{cNo}{RGB}{0,0,0}          % 否 分支
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    startstop/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=0.8cm, text centered, draw=cTerm, thick, fill=cTermBg, font=\bfseries},
+    process/.style={rectangle, minimum width=3.5cm, minimum height=1cm, text centered, draw=cProc, thick, fill=cProcBg, align=center},
+    decision/.style={diamond, minimum width=3.5cm, minimum height=1cm, text centered, draw=cDec, thick, fill=cDecBg, aspect=2.5, align=center},
+    arrow/.style={thick, ->, >=Stealth}
+]
+
+    % ====================
+    % 1. 节点定义
+    % ====================
+    \node (start) [startstop] {开始};
+
+    \node (s101) [process, below=0.6cm of start] {直接内存访问发送队列采样与\\计算归一化利用率指标 $\rho_{dma}$};
+
+    % 第一级判断：是否重度拥塞
+    \node (dec1) [decision, below=0.8cm of s101] {$\rho_{dma} \ge T_2$ ?};
+    \node (cl2) [process, draw=cHeavy, fill=white, right=1.5cm of dec1] {拥塞等级 $CL = 2$\\ (重度拥塞)};
+
+    % 第二级判断：是否轻度拥塞
+    \node (dec2) [decision, below=0.8cm of dec1] {$\rho_{dma} \ge T_1$ ?};
+    \node (cl1) [process, draw=cLight, fill=white] at (dec2 -| cl2) {拥塞等级 $CL = 1$\\ (轻度拥塞)};
+
+    % 第三级：正常状态
+    \node (cl0) [process, draw=cTerm, fill=cTermBg, below=0.8cm of dec2] {拥塞等级 $CL = 0$\\ (无拥塞)};
+
+    % 后续步骤
+    \node (s103) [process, below=1cm of cl0] {确定业务类型};
+
+    \node (s104) [process, below=0.6cm of s103] {零延迟嵌入拥塞等级\\与业务类型标签};
+
+    \node (send) [process, below=0.6cm of s104] {传输层放行数据包};
+
+    \node (end) [startstop, below=0.6cm of send] {结束};
+
+    % ====================
+    % 2. 主干垂直连线
+    % ====================
+    \draw [arrow, cNo] (start) -- (s101);
+    \draw [arrow, cProc] (s101) -- (dec1);
+    \draw [arrow, cNo] (dec1) -- node[right, font=\small, text=cNo] {否} (dec2);
+    \draw [arrow, cNo] (dec2) -- node[right, font=\small, text=cNo] {否} (cl0);
+    \draw [arrow, cProc] (cl0) -- (s103);
+    \draw [arrow, cProc] (s103) -- (s104);
+    \draw [arrow, cProc] (s104) -- (send);
+    \draw [arrow, cTerm] (send) -- (end);
+
+    % ====================
+    % 3. 分支连线 (判定为 "是")
+    % ====================
+    \draw [arrow, cYes] (dec1) -- node[above, font=\small, text=cYes] {是} (cl2);
+    \draw [arrow, cYes] (dec2) -- node[above, font=\small, text=cYes] {是} (cl1);
+
+    % ====================
+    % 4. 分支汇合排版 (防交叉完美路由)
+    % ====================
+    \coordinate (merge) at ($(cl0.south)!0.4!(s103.north)$);
+    \coordinate (R_bus_top) at ($(cl2.east) + (0.8, 0)$);
+
+    \draw [thick, cYes] (cl2.east) -- (R_bus_top);
+    \draw [thick, cYes] (cl1.east) -- (cl1.east -| R_bus_top);
+
+    \draw [arrow, cYes] (R_bus_top) |- (merge);
+
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,75 @@
+\documentclass[tikz, border=20pt]{standalone}
+\usepackage{ctex}
+\usepackage{xcolor}
+\usetikzlibrary{positioning, arrows.meta, calc, shapes.geometric}
+
+% zhuanli/fig5 配色：黑白专利附图（前景黑 / 背景白）
+\definecolor{cIn}{RGB}{0,0,0}          % 输入
+\definecolor{cInBg}{RGB}{255,255,255}
+\definecolor{cLogic}{RGB}{0,0,0}       % 逻辑中心（高亮靠粗线框）
+\definecolor{cLogicBg}{RGB}{255,255,255}
+\definecolor{cOut}{RGB}{0,0,0}         % 输出
+\definecolor{cOutBg}{RGB}{255,255,255}
+\definecolor{cRule}{RGB}{0,0,0}        % 规则框
+\definecolor{cRuleBg}{RGB}{255,255,255}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    box/.style={rectangle, draw=cLogic, thick, minimum width=4.5cm, minimum height=1.5cm, align=center, fill=white},
+    input/.style={rectangle, draw=cIn, thick, minimum width=4cm, minimum height=1cm, align=center, fill=cInBg},
+    output/.style={rectangle, draw=cOut, thick, minimum width=4cm, minimum height=1cm, align=center, fill=cOutBg},
+    arrow/.style={thick, ->, >=Stealth, shorten >= 1pt}
+]
+
+    % ====================
+    % 1. 输入参数 (左侧) —— 蓝
+    % ====================
+    \node[input] (sd) at (0, 1.8) {目的主机有限状态机的状态\\ $S_d \in \{S_0, S_1, S_2, S_3\}$};
+    \node[input] (bt) at (0, 0) {业务类型标签};
+    \node[input] (wt) at (0, -1.8) {租户权重\\ (多租户策略参数)};
+
+    % ====================
+    % 2. 核心逻辑处理中心 (中间) —— 紫色高亮
+    % ====================
+    \node[box, draw=cLogic, very thick, fill=cLogicBg, text width=7.5cm, minimum height=4.5cm] (logic) at (8, 0) {
+        \textbf{\textcolor{cLogic}{优先级映射与丢包决策中心}}\\
+        \vspace{0.4cm}
+        \textbf{1. 优先级降级计算：}\\
+        $\pi = \max(0, P_{base}(BT) - \lambda \cdot S_d)$\\
+        \vspace{0.2cm}
+        \textbf{2. 丢包资格判定：}\\
+        $\delta = f(S_d, BT)$\\
+        \vspace{0.2cm}
+        \textbf{3. 优先级冻结检查：}\\
+        若 $S_d = S_3$，则 $\pi = \pi_f$
+    };
+
+    % ====================
+    % 3. 输出决策 (右侧) —— 绿
+    % ====================
+    \node[output] (pi) at (16, 1) {调度队列优先级 $\pi$\\ (映射至硬件队列)};
+    \node[output] (delta) at (16, -1) {丢包资格标志位 $\delta$\\ (0:不可丢 / 1:可丢)};
+
+    % ====================
+    % 4. 连线与逻辑标注
+    % ====================
+    \draw [arrow, cIn] (sd.east) -- (logic.west |- sd.east);
+    \draw [arrow, cIn] (bt.east) -- (logic.west);
+    \draw [arrow, cIn] (wt.east) -- (logic.west |- wt.east);
+
+    \draw [arrow, cOut] (logic.east |- pi.west) -- (pi.west);
+    \draw [arrow, cOut] (logic.east |- delta.west) -- (delta.west);
+
+    % ====================
+    % 5. 底部：映射逻辑执行规则 —— 金黄框
+    % ====================
+    \node[draw=cRule, thick, rectangle, rounded corners, fill=cRuleBg, inner sep=10pt, font=\small, text width=14cm, align=left] at (8, -5.2) {
+        \textbf{\textcolor{black}{调度决策执行规则：}}\\
+        \textbf{规则一：}在重度拥塞（$S_d = S_2$）状态下，对于后台业务（BE），配置其优先级为零并允许丢弃（$\delta = 1$）；对于延迟敏感业务（DS），降级其优先级但限制丢弃资格。\\
+        \textbf{规则二：}对于无损关键业务（LC），无论当前目的主机的拥塞状态如何，强制配置丢包资格标志位 $\delta = 0$ 以禁止设备丢包。\\
+        \textbf{规则三：}当状态机进入恢复状态（$S_d = S_3$）时，系统启动优先级冻结机制，强制映射该流的优先级至历史冻结优先级 $\pi_f$，以维持数据包的先进先出（FIFO）语义。
+    };
+
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,82 @@
+[
+  {
+    "timesteps": 10000,
+    "success_rate": 0.03125,
+    "mean_max_vx_after": 0.0156337452732902,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.1330906408040456
+  },
+  {
+    "timesteps": 20000,
+    "success_rate": 0.03125,
+    "mean_max_vx_after": 0.015499390236757567,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13375944698999503
+  },
+  {
+    "timesteps": 30000,
+    "success_rate": 0.0625,
+    "mean_max_vx_after": 0.01363858336453359,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13057782306420707
+  },
+  {
+    "timesteps": 40000,
+    "success_rate": 0.03125,
+    "mean_max_vx_after": 0.014778401828534172,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.1334415425394544
+  },
+  {
+    "timesteps": 50000,
+    "success_rate": 0.03125,
+    "mean_max_vx_after": 0.01590055842003002,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13570775555807102
+  },
+  {
+    "timesteps": 60000,
+    "success_rate": 0.0625,
+    "mean_max_vx_after": 0.01618668890206608,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13374081780138342
+  },
+  {
+    "timesteps": 70000,
+    "success_rate": 0.125,
+    "mean_max_vx_after": 0.01735784874949687,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13430214705583726
+  },
+  {
+    "timesteps": 80000,
+    "success_rate": 0.25,
+    "mean_max_vx_after": 0.017384149523640174,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13225133646092418
+  },
+  {
+    "timesteps": 90000,
+    "success_rate": 0.15625,
+    "mean_max_vx_after": 0.01714701731692687,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13334134592795233
+  },
+  {
+    "timesteps": 100000,
+    "success_rate": 0.09375,
+    "mean_max_vx_after": 0.016780138188187015,
+    "head_hit_rate": 1.0,
+    "body_hit_mean": 0.0,
+    "ball_x_end_mean": 0.13469772141397238
+  }
+]
